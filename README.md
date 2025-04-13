@@ -24,27 +24,27 @@ The device offers real-time monitoring, operational settings adjustments, Wi-Fi 
     - Set and adjust pressure parameters such as Set Pressure and Pressure Differential.
     - Switch between Compression Mode and Release Mode.
 3.	Calibration:
-- Access calibration settings for initial setup and sensor replacement.
-- Ensure accurate readings by recalibrating pressure gauges.
+    - Access calibration settings for initial setup and sensor replacement.
+    - Ensure accurate readings by recalibrating pressure gauges.
 4.	Wi-Fi and Network Management:
-- Configure Wi-Fi settings directly from the interface.
-- Connect to local networks and access points.
+    - Configure Wi-Fi settings directly from the interface.
+    - Connect to local networks and access points.
 5.	MQTT Configuration:
-- Set up MQTT broker details including Host, Port, User, and Password.
-- Define the main MQTT Topic for data transmission.
+    - Set up MQTT broker details including Host, Port, User, and Password.
+    - Define the main MQTT Topic for data transmission.
 6.	Security and Access Control:
-- Lock and unlock specific settings to prevent unauthorized access.
-- Enable access to calibration and network settings only when necessary.
+    - Lock and unlock specific settings to prevent unauthorized access.
+    - Enable access to calibration and network settings only when necessary.
 7.	Error Monitoring:
-- View registered errors, their description, and the time of occurrence.
-- Clear the error list using the Clear button.
+    - View registered errors, their description, and the time of occurrence.
+    - Clear the error list using the Clear button.
 - Reboot the pressure controller using the Reboot button.
 8.	Service Information:
-- Access service information such as firmware version and device IP address by pressing the button in the upper left corner of the status bar.
-- Display the current date and time, as well as the time elapsed since the last device reboot, to the right of the service information button.
+    - Access service information such as firmware version and device IP address by pressing the button in the upper left corner of the status bar.
+    - Display the current date and time, as well as the time elapsed since the last device reboot, to the right of the service information button.
 9.	Over-the-air Firmware Update:
-- To update the firmware, go to the address http://ip-of-the-device/update (available only through the web interface).
-- Using this screen, you can upload the latest firmware and/or web interface file images provided by the developer to the device.
+    - To update the firmware, go to the address http://ip-of-the-device/update (available only through the web interface).
+    - Using this screen, you can upload the latest firmware and/or web interface file images provided by the developer to the device.
 
 ## Hardware Description
 The pressure controller is implemented based on a 7.0" HMI Display TFT LCD Touch Screen and contains the following main components:
