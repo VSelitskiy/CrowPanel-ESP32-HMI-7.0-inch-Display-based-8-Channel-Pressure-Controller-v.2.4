@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ESP Pressure Controller</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+</head>
+
+<body>
+  <div class="topnav">
+    <h1>Pressure Controller</h1>
+    <h2 id="tankNumber">FV7</h2>
+  </div>
+  <div class="content">
+    <div class="card-grid-2">
+      <div class="card">
+        <form>
+          <p class="card-title">FV7 Settings</p>
+
+          <i class="bi bi-speedometer" style="font-size:20px; color:rgb(255, 35, 119)"></i>
+          <label for="setPressure">Set Pressure, bar:</label>
+          <input class="fv-settings" type="number" id="setPressure" name="setPressure" min="0" max="2" step="0.01"
+            placeholder="1.00"><br>
+
+          <i class="bi bi-plus-slash-minus" style="font-size:20px; color:rgb(255, 35, 119)"></i>
+          <label for="pressureDifferential">Differential, bar:</label>
+          <input class="fv-settings" type="number" id="pressureDifferential" name="pressureDifferential" min="0.002"
+            max="0.2" step="0.002" placeholder="0.006"><br>
+
+          <i class="bi bi-activity" style="font-size:20px; color:rgb(255, 35, 119)"></i>
+          <label><b>Mode:</b></label>
+          <input class="fv-mode" type="radio" id="compression" name="pressureMode" value="0">
+          <label for="compression">Compression</label>
+          <input class="fv-mode" type="radio" id="release" name="pressureMode" value="1">
+          <label for="release">Release</label><br>
+          <input type="submit" id="saveSettings" value="Save">
+        </form>
+      </div>
+
+
+      <div class="card">
+        <form>
+          <p class="card-title">FV7 Calibration Values</p>
+
+          <i class="fa fa-dashboard" style="font-size:20px; color:rgb(255, 35, 119)"></i>
+          <label for="sensorRange"> Sensor Range, bar:</label>
+          <input class="fv-settings locked" type="number" id="sensorRange" name="sensorRange" min="1" max="6" step="0.5"
+            placeholder="1.000" disabled><br>
+
+          <i class="fa fa-square-o" style="font-size:20px; color:rgb(255, 35, 119)"></i>
+          <label for="volts_4"> 0% level voltage, V:</label>
+          <input class="fv-settings locked" type="number" id="volts_4" name="volts_4" min="0" max="1" step="0.001"
+            placeholder="1.000" disabled><br>
+
+          <i class="fa fa-square" style="font-size:20px; color:rgb(255, 35, 119)"></i>
+          <label for="volts_20"> 100% level voltage, V:</label>
+          <input class="fv-settings locked" type="number" id="volts_20" name="volts_20" min="1" max="6" step="0.001"
+            placeholder="1.000" disabled><br>
+
+
+          <input type="checkbox" id="lock">
+          <label for="lock" class="checkbox">Unlock Setup</label>
+
+
+          <input type="submit" id="saveSetupValues" value="Save">
+
+        </form>
+      </div>
+
+    </div>
+    <br>
+    <div class="card-noshadow">
+      <div class="left">
+        <a href="/"> <button class="button">Home</button></a>
+      </div>
+    </div>
+  </div>
+<!-- Modal for PIN entry -->
+<div id="pinModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h3>Enter PIN Code</h3>
+    <input type="password" id="pinInput" maxlength="4" placeholder="****">
+    <button id="submitPin">Submit</button>
+  </div>
+</div>
+
+  <script src="fvscript.js"></script>
+</body>
+
+</html>

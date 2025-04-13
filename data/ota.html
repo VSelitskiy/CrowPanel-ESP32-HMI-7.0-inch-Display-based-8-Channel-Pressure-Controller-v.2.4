@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+  <div class="topnav">
+    <h1>OTA Update</h1>
+  </div>
+  <div class="content">
+    <div class="card-title" id="currentVersion" style="margin-top: 10px;">
+      Current Firmware Version: <span id="firmwareVersion">Loading...</span>
+    </div>
+    <br>
+    <form class="updateForm" method="POST" action="/update" enctype="multipart/form-data">
+      <label for="fileType">Select file type:</label>
+      <select name="fileType" id="fileType" class="input-select">
+        <option value="firmware">Firmware (.bin)</option>
+        <option value="filesystem">File System (SPIFFS/LittleFS)</option>
+      </select>
+      <br><br>
+      <input type="file" name="update" id="update" class="button">
+      <br><br>
+      <input type="submit" value="Update" class="button" style="display: none;">
+    </form>
+    
+    <div class="progressWrapper" style="display: none;">
+      <div class="progressBar"></div>
+      <div class="progressText">0%</div>
+    </div>
+    
+    <div class="restartMessage" style="display: none;">
+    </div>   
+    <div id="countdown" style="display: none;">Restarting in <span id="countdownValue">10</span> seconds...</div>
+  </div>
+  <br>
+  <a href="/"> <button class="button">Home</button></a>
+  <script src="otascript.js"></script>
+</body>
+</html>

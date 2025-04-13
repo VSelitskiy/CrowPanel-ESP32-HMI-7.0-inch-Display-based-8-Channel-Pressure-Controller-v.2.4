@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Configuration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div class="topnav">
+        <h1>System Configuration</h1>
+    </div>
+    <div class="content">
+        <div class="card-grid">
+            <div class="card">
+                <form id="configForm" onsubmit="saveConfig(event)">
+                    <p>
+                        <label for="tempConfig">Temperature Configuration</label>
+                        <select id="tempConfig" name="tempConfig">
+                            <option value="0">None</option>
+                            <option value="1">Cone Only</option>
+                            <option value="2">Head Only</option>
+                            <option value="3">Both</option>
+                        </select>
+                    </p>
+                    <p>
+                        <label for="pressureConfig">Pressure Configuration</label>
+                        <select id="pressureConfig" name="pressureConfig">
+                            <option value="0">Disabled</option>
+                            <option value="1">Enabled</option>
+                        </select>
+                    </p>
+                    <input type="checkbox" id="lock">
+                    <label for="lock" class="checkbox">Unlock Configuration</label>
+                    <br><br>
+                    <input type="submit" value="Save">
+                </form>
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+        </div>
+        <br>
+        <div class="card-noshadow">
+            <div class="left">
+                <a href="/"><button class="button">Home</button></a>
+            </div>
+        </div>
+    </div>
+    <script src="configscript.js"></script>
+</body>
+</html>
