@@ -19,10 +19,10 @@ The device offers real-time monitoring, operational settings adjustments, Wi-Fi 
 - Low energy consumption
 ## Specific Functions of the Interface
 1.	Real-time Monitoring:
-- View real-time data from pressure sensors in the controlled tanks.
+    - View real-time data from pressure sensors in the controlled tanks.
 2.	Operational Settings:
-- Set and adjust pressure parameters such as Set Pressure and Pressure Differential.
-- Switch between Compression Mode and Release Mode.
+    - Set and adjust pressure parameters such as Set Pressure and Pressure Differential.
+    - Switch between Compression Mode and Release Mode.
 3.	Calibration:
 - Access calibration settings for initial setup and sensor replacement.
 - Ensure accurate readings by recalibrating pressure gauges.
