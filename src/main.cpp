@@ -62,7 +62,7 @@ const char* FIRMWARE_VERSION = "2.0.0"; // v.1.2.1 + OTA + LWT + Extended JSON o
 
 // const char* PRESET_PIN = "0808";
 const uint16_t INTERVAL = 60000; // INTERVAL to wait for Wi-Fi connection (milliseconds)
-const uint16_t INDICATION_TIME = 1000; // control interval
+const uint16_t INDICATION_TIME = 2000; // control interval
 const uint32_t LOG_INTERVAL = 300000; // Log interval in milliseconds (1 hour as an example) 
 const uint32_t INACTIVITY_PERIOD = 120000; // 120 seconds of inactivity to switch of backlight
 
@@ -74,8 +74,8 @@ uint64_t tele_millis = 0;
 uint64_t lastActivityTime = 0;
 
 // Process variables
-int8_t tankNumber = 0;
-int8_t pressureMode[NUMBER_OF_TANKS];
+uint8_t tankNumber = 0;
+uint8_t pressureMode[NUMBER_OF_TANKS];
 int16_t adc[NUMBER_OF_TANKS];
 float volts[NUMBER_OF_TANKS];
 float volts_4[NUMBER_OF_TANKS];
@@ -84,7 +84,7 @@ float sensorRange[NUMBER_OF_TANKS];
 float setPressure[NUMBER_OF_TANKS];
 float pressureDifferential[NUMBER_OF_TANKS];
 float pressure[NUMBER_OF_TANKS];
-int8_t sensorError[NUMBER_OF_TANKS];
+uint8_t sensorError[NUMBER_OF_TANKS];
 
 // Search for parameter in Web-Manager HTTP POST request
 const char *PARAM_INPUT_1 = "ssid";
@@ -260,12 +260,8 @@ String readFile(fs::FS &fs, const char *path)
     return String();
   }
 
-  String fileContent;
-  while (file.available())
-  {
-    fileContent = file.readStringUntil('\n');
-    break;
-  }
+  String fileContent = file.readString();  // read entire file
+  file.close();  // Close the file after reading
   return fileContent;
 }
 
@@ -293,6 +289,7 @@ void writeFile(fs::FS &fs, const char *path, const char *message)
     Serial.println(errorMsg);
     addErrorMessage(errorMsg, SYSTEM_ERROR_FILE_WR, 2);
   }
+  file.close();  // Explicitly close the file here to flush buffers and release resources
 }
 
 // Function to format tank-specific state topic
@@ -329,7 +326,7 @@ bool loadSettingsFile(const String &settingFile) {
         return false;
     }
 
-    int8_t i = json["tankNumber"].as<signed char>();
+    uint8_t i = json["tankNumber"].as<signed char>();
     if (i < 1 || i > NUMBER_OF_TANKS) {
         Serial.println("Invalid tank number in settings file");
         return false;
@@ -423,7 +420,7 @@ bool loadConfigFile(String configFile)
 // mapping function
 // Function moved to math_utils.cpp
 
-void printSerial(int8_t i)
+void printSerial(uint8_t i)
 {
     if (!tanks[i]) return;
     
@@ -450,154 +447,165 @@ bool checkI2CDevice(uint8_t address) {
     return (error == 0); // Return true if no error
 }
 
+// Function for averaging 4 readings on a selected ADS1115 channel
+int16_t readAverageChannel(Adafruit_ADS1115 &adc, uint8_t channel, uint8_t samples = 4) {
+  long sum = 0;
+  for (uint8_t i = 0; i < samples; i++) {
+    int16_t val = adc.readADC_SingleEnded(channel);
+    // readADC_SingleEnded already waits for conversion to complete inside
+    sum += val;
+  }
+  return sum >> 2; // divide by 4 using bit shift
+}
+
 // Get Sensor Readings and return JSON String
 String getSensorReadings() {
-    // Check I2C communication with ADS1115 devices
-    bool ads0048Available = checkI2CDevice(0x48);
-    bool ads0049Available = checkI2CDevice(0x49);
-    
-    JsonDocument readings;
-    
-    // Add Configuration object with current settings
-    JsonObject Configuration = readings["Configuration"].to<JsonObject>();
-    Configuration["tanksNumber"] = NUMBER_OF_TANKS;
-    Configuration["tempConfig"] = static_cast<int>(SystemConfig::tempConfig);
-    Configuration["pressureConfig"] = static_cast<int>(SystemConfig::pressureConfig);
-    
-    // Existing arrays for sensor data
-    JsonArray data = readings["pressure"].to<JsonArray>();
-    JsonArray _error = readings["sensorError"].to<JsonArray>();
-    JsonArray state = readings["state"].to<JsonArray>();
-    bool hasError = false;
+  // Check I2C communication with ADS1115 devices
+  bool ads0048Available = checkI2CDevice(0x48);
+  bool ads0049Available = checkI2CDevice(0x49);
+  
+  JsonDocument readings;
+  
+  // Add Configuration object with current settings
+  JsonObject Configuration = readings["Configuration"].to<JsonObject>();
+  Configuration["tanksNumber"] = NUMBER_OF_TANKS;
+  Configuration["tempConfig"] = static_cast<int>(SystemConfig::tempConfig);
+  Configuration["pressureConfig"] = static_cast<int>(SystemConfig::pressureConfig);
+  
+  // Existing arrays for sensor data
+  JsonArray data = readings["pressure"].to<JsonArray>();
+  JsonArray _error = readings["sensorError"].to<JsonArray>();
+  JsonArray state = readings["state"].to<JsonArray>();
+  bool hasError = false;
 
-    for (int8_t j = 0; j < NUMBER_OF_TANKS; j++) {
-        bool updatePressure = true;
-        float volts = 0;
+  for (uint8_t j = 0; j < NUMBER_OF_TANKS; j++) {
+      bool updatePressure = true;
+      float volts = 0;
 
-        if (j < 4) {
-            if (!ads0048Available) {
-                String errorMsg = "ADS1115 at address 0x48 not responding (Channel " + String(j) + ")";
-                Serial.print("Error: ");
-                Serial.println(errorMsg);
-                addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
-                tanks[j]->setSensorError(-1);
-                hasError = true;
-                updatePressure = false;
-            } else {
-                int16_t adcValue = ads0048.readADC_SingleEnded(j);
-                tanks[j]->setADCValue(adcValue);
-                
-                if (!ads0048.conversionComplete()) {
-                    String errorMsg = "Conversion error on ADS1115 at address 0x48 (Channel " + String(j) + ")";
-                    Serial.print("Error: ");
-                    Serial.println(errorMsg);
-                    addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
-                    tanks[j]->setSensorError(1);
-                    hasError = true;
-                    updatePressure = false;
-                } else {
-                    volts = ads0048.computeVolts(adcValue);
-                    tanks[j]->setVoltage(volts);
-                    tanks[j]->setSensorError(0);
-                }
-            }
-        } else {
-            if (!ads0049Available) {
-                String errorMsg = "ADS1115 at address 0x49 not responding (Channel " + String(j - 4) + ")";
-                Serial.print("Error: ");
-                Serial.println(errorMsg);
-                addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
-                tanks[j]->setSensorError(-1);
-                hasError = true;
-                updatePressure = false;
-            } else {
-                int16_t adcValue = ads0049.readADC_SingleEnded(j - 4);
-                tanks[j]->setADCValue(adcValue);
-                
-                if (!ads0049.conversionComplete()) {
-                    String errorMsg = "Conversion error on ADS1115 at address 0x49 (Channel " + String(j - 4) + ")";
-                    Serial.print("Error: ");
-                    Serial.println(errorMsg);
-                    addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
-                    tanks[j]->setSensorError(1);
-                    hasError = true;
-                    updatePressure = false;
-                } else {
-                    volts = ads0049.computeVolts(adcValue);
-                    tanks[j]->setVoltage(volts);
-                    tanks[j]->setSensorError(0);
-                }
-            }
-        }
+      if (j < 4) {
+          if (!ads0048Available) {
+              String errorMsg = "ADS1115 at address 0x48 not responding (Channel " + String(j) + ")";
+              Serial.print("Error: ");
+              Serial.println(errorMsg);
+              addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
+              tanks[j]->setSensorError(-1);
+              hasError = true;
+              updatePressure = false;
+          } else {
+              int16_t adcValue = ads0048.readADC_SingleEnded(j);
+              tanks[j]->setADCValue(adcValue);
+              
+              if (!ads0048.conversionComplete()) {
+                  String errorMsg = "Conversion error on ADS1115 at address 0x48 (Channel " + String(j) + ")";
+                  Serial.print("Error: ");
+                  Serial.println(errorMsg);
+                  addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
+                  tanks[j]->setSensorError(1);
+                  hasError = true;
+                  updatePressure = false;
+              } else {
+                  volts = ads0048.computeVolts(adcValue);
+                  tanks[j]->setVoltage(volts);
+                  tanks[j]->setSensorError(0);
+              }
+          }
+      } else {
+          if (!ads0049Available) {
+              String errorMsg = "ADS1115 at address 0x49 not responding (Channel " + String(j - 4) + ")";
+              Serial.print("Error: ");
+              Serial.println(errorMsg);
+              addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
+              tanks[j]->setSensorError(-1);
+              hasError = true;
+              updatePressure = false;
+          } else {
+              int16_t adcValue = ads0049.readADC_SingleEnded(j - 4);
+              tanks[j]->setADCValue(adcValue);
+              
+              if (!ads0049.conversionComplete()) {
+                  String errorMsg = "Conversion error on ADS1115 at address 0x49 (Channel " + String(j - 4) + ")";
+                  Serial.print("Error: ");
+                  Serial.println(errorMsg);
+                  addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
+                  tanks[j]->setSensorError(1);
+                  hasError = true;
+                  updatePressure = false;
+              } else {
+                  volts = ads0049.computeVolts(adcValue);
+                  tanks[j]->setVoltage(volts);
+                  tanks[j]->setSensorError(0);
+              }
+          }
+      }
 
-        if (updatePressure) {
-            float newPressure = tanks[j]->calculatePressure(volts);
-            tanks[j]->setPressure(newPressure);
-            
-            // Check for out of range values
-            if (volts < tanks[j]->getVolts4() * 0.8 || volts > tanks[j]->getVolts20() * 1.2) {
-                String errorMsg = "Sensor error: Voltage out of range on channel " + String(j);
-                Serial.print("Error: ");
-                Serial.println(errorMsg);
-                addErrorMessage(errorMsg, SENSOR_ERROR_OUT_OF_RANGE, 2);
-                tanks[j]->setSensorError(1);
-                hasError = true;
-            }
-        }
+      if (updatePressure) {
+          float newPressure = tanks[j]->calculatePressure(volts);
+          tanks[j]->setPressure(newPressure);
+          
+          // Check for out of range values
+          if (volts < tanks[j]->getVolts4() * 0.8 || volts > tanks[j]->getVolts20() * 1.2) {
+              String errorMsg = "Sensor error: Voltage out of range on channel " + String(j);
+              Serial.print("Error: ");
+              Serial.println(errorMsg);
+              addErrorMessage(errorMsg, SENSOR_ERROR_OUT_OF_RANGE, 2);
+              tanks[j]->setSensorError(1);
+              hasError = true;
+          }
+      }
 
-        data.add(tanks[j]->getPressure());
-        _error.add(tanks[j]->getSensorError());
-        state.add(tanks[j]->getRelayState() ? 1 : 0);
-    }
+      data.add(tanks[j]->getPressure());
+      _error.add(tanks[j]->getSensorError());
+      state.add(tanks[j]->getRelayState() ? 1 : 0);
+  }
 
-    // Nested object System in readings json object
-    JsonObject System = readings["System"].to<JsonObject>();
-    System["Time"] = get_var_ntp_time();
-    System["upTime"] = getReadableTime();
-    System["upTimeSec"] = (int) millis()/1000;
-    System["bootCounter"] = bootCounter;
-    System["freeHeap"] = ESP.getFreeHeap();
+  // Nested object System in readings json object
+  JsonObject System = readings["System"].to<JsonObject>();
+  System["Time"] = get_var_ntp_time();
+  System["upTime"] = getReadableTime();
+  System["upTimeSec"] = (int) millis()/1000;
+  System["bootCounter"] = bootCounter;
+  System["freeHeap"] = ESP.getFreeHeap();
 
-    JsonObject Wifi = readings["Wifi"].to<JsonObject>();
-    Wifi["SSID"] = WiFi.SSID();
-        
-    int16_t dBm = WiFi.RSSI();
-    uint8_t quality;
-    if(dBm <= -100) {
-        quality = 0;
-    } else if (dBm >= -50) {
-        quality = 100;
-    } else {
-        quality = 2 * (dBm + 100);
-    }
-    
-    if (WiFi.status() != WL_CONNECTED) {
-        set_var_wifi_status(-1);
-    } else {
-        if(quality < 21) {
-            set_var_wifi_status(0);
-        } else if (quality < 41) {
-            set_var_wifi_status(1);
-        } else if (quality < 61) {
-            set_var_wifi_status(2);
-        } else if (quality < 81) {
-            set_var_wifi_status(3);
-        } else {
-            set_var_wifi_status(4);
-        }
-    }
+  JsonObject Wifi = readings["Wifi"].to<JsonObject>();
+  Wifi["SSID"] = WiFi.SSID();
+      
+  int16_t dBm = WiFi.RSSI();
+  uint8_t quality;
+  if(dBm <= -100) {
+      quality = 0;
+  } else if (dBm >= -50) {
+      quality = 100;
+  } else {
+      quality = 2 * (dBm + 100);
+  }
+  
+  if (WiFi.status() != WL_CONNECTED) {
+      set_var_wifi_status(-1);
+  } else {
+      if(quality < 21) {
+          set_var_wifi_status(0);
+      } else if (quality < 41) {
+          set_var_wifi_status(1);
+      } else if (quality < 61) {
+          set_var_wifi_status(2);
+      } else if (quality < 81) {
+          set_var_wifi_status(3);
+      } else {
+          set_var_wifi_status(4);
+      }
+  }
 
-    Wifi["RSSI"] = dBm;
-    Wifi["Signal"] = quality;
-    Wifi["linkCount"] = linkCounter;
-    Wifi["mqttCount"] = mqttCounter;
+  Wifi["RSSI"] = dBm;
+  Wifi["Signal"] = quality;
+  Wifi["linkCount"] = linkCounter;
+  Wifi["mqttCount"] = mqttCounter;
 
-    // Set or reset error status based on the presence of errors
-    set_var_error_status(hasError);
+  // Set or reset error status based on the presence of errors
+  set_var_error_status(hasError);
 
-    String output;
-    serializeJson(readings, output);
-    return output;
+  String output;
+  serializeJson(readings, output);
+  return output;
 }
 
 // ws1 websocket update message
@@ -617,7 +625,7 @@ void handleWebSocketMessage_ws1(void *arg, uint8_t *data, size_t len)
     }
 
     shouldSaveConfig = rx_json["request"].as<bool>();
-    int8_t i = rx_json["tankNumber"];
+    uint8_t i = rx_json["tankNumber"];
     String output;
 
     if (shouldSaveConfig)
@@ -739,9 +747,10 @@ void WiFiEvent(WiFiEvent_t event)
     Serial.printf("[WiFi-event] event: %d\n", event);
 
     switch (event) {
-        case ARDUINO_EVENT_WIFI_STA_START:
+        case ARDUINO_EVENT_WIFI_STA_START: {
             Serial.println("WiFi client started");
             break;
+        }
         case ARDUINO_EVENT_WIFI_STA_STOP: {
             String errorMsg = "WiFi clients stopped"; 
             Serial.println(errorMsg); 
@@ -750,11 +759,12 @@ void WiFiEvent(WiFiEvent_t event)
             set_var_ap_status(false);
             break;
         }
-        case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+        case ARDUINO_EVENT_WIFI_STA_CONNECTED: {
             Serial.println("Connected to access point");
             set_var_wifi_status(0);
             set_var_ap_status(false);
             break;
+        }
         case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
             String errorMsg = "Disconnected from WiFi access point"; 
             Serial.println(errorMsg); 
@@ -782,24 +792,26 @@ void WiFiEvent(WiFiEvent_t event)
             set_var_ap_status(false);
             break;
         }
-        case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+        case ARDUINO_EVENT_WIFI_STA_LOST_IP: {
             Serial.println("Lost IP address and IP address is reset to 0");
             break;
-        // case ARDUINO_EVENT_WIFI_AP_START: {
-        //     IPAddress ip = WiFi.softAPIP();
-        //     String local_ip = ip.toString();
-        //     Serial.println("WiFi access point started");
-        //     Serial.print("AP IP address: ");
-        //     Serial.println(local_ip);
-        //     set_var_local_ip(local_ip.c_str());
-        //     set_var_ap_status(true);
-        //     break;
-        // }
-        // case ARDUINO_EVENT_WIFI_AP_STOP:
-        //     Serial.println("WiFi access point  stopped");
-        //     set_var_wifi_status(-1);
-        //     set_var_ap_status(false);
-        //     break;
+        }
+        case ARDUINO_EVENT_WIFI_AP_START: {
+            IPAddress ip = WiFi.softAPIP();
+            String local_ip = ip.toString();
+            Serial.println("WiFi access point started");
+            Serial.print("AP IP address: ");
+            Serial.println(local_ip);
+            set_var_local_ip(local_ip.c_str());
+            set_var_ap_status(true);
+            break;
+        }
+        case ARDUINO_EVENT_WIFI_AP_STOP: {
+            Serial.println("WiFi access point  stopped");
+            set_var_wifi_status(-1);
+            set_var_ap_status(false);
+            break;
+        }
         default: break;
   }
 }
@@ -909,7 +921,7 @@ void setupWebManager() {
     // Common POST handler for web manager
     server.on("/webmanager", HTTP_POST, [](AsyncWebServerRequest *request) {
         int params = request->params();
-        for (int8_t i = 0; i < params; i++) {
+        for (uint8_t i = 0; i < params; i++) {
             const AsyncWebParameter* p = request->getParam(i);
             if (p->isPost()) {
                 const char* name = p->name().c_str();
@@ -1032,7 +1044,7 @@ void onMqttMessage(char *topic, char *payload, int retain, int qos, bool dup)
         const char *_pressureDifferential = obj["pressureDifferential"].as<const char *>();
         const char *_pressureMode = obj["pressureMode"].as<const char *>();
         
-        int8_t i = 0;
+        uint8_t i = 0;
         if (_tanknumber != nullptr)
         {
             i = atoi(_tanknumber);
@@ -1275,7 +1287,7 @@ void setup()
     Serial.println("Failed to load system configuration");
   }
   // Initiate sensor parameters
-  for (int8_t j = 0; j < NUMBER_OF_TANKS; ++j)
+  for (uint8_t j = 0; j < NUMBER_OF_TANKS; ++j)
   {
     settings[j] = String(jsonFileSettings) + (j + 1) + String(_json);
     tankSettings[j] = readFile(LittleFS, settings[j].c_str());
@@ -1289,6 +1301,8 @@ void setup()
   Serial.println("ADC Range: 1x gain   +/- 4.096V  1 bit = 0.125mV");
   ads0048.setGain(GAIN_ONE); // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
   ads0049.setGain(GAIN_ONE); // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
+  // ads0048.setDataRate(RATE_ADS1115_250SPS); // 250 SPS
+  // ads0049.setDataRate(RATE_ADS1115_250SPS); // 250 SPS
   init_ads0048 = ads0048.begin(0x48);
   init_ads0049 = ads0049.begin(0x49);
   if (!init_ads0048)
@@ -1416,6 +1430,27 @@ void loop()
     String output = getSensorReadings();
     PublishMqtt(output, mqtt_topic_sensor);
     ws.textAll(output);
+    // Send updates on current settings
+    for (uint8_t j = 0; j < NUMBER_OF_TANKS; ++j)
+    {
+      if (tanks[j]) {
+        JsonDocument doc;
+        doc["tankNumber"] = j + 1;
+        doc["setPressure"] = tanks[j]->getSetPressure();
+        doc["pressureDifferential"] = tanks[j]->getPressureDifferential();
+        doc["pressureMode"] = tanks[j]->getPressureMode();
+        doc["volts_4"] = tanks[j]->getVolts4();
+        doc["volts_20"] = tanks[j]->getVolts20();
+        doc["sensorRange"] = tanks[j]->getSensorRange();
+        
+        char outputSettings[256];
+        size_t len = serializeJson(doc, outputSettings, sizeof(outputSettings));
+        Serial.printf("Serialized JSON length: %u\n", (unsigned)len);
+        formatTankStateTopic(mqtt_topic_state_fv, j + 1);
+        PublishMqtt(outputSettings, mqtt_topic_state_fv);
+        
+      }
+    }
   }
   ui_tick();
   lv_timer_handler(); /* let the GUI do its work */

@@ -160,7 +160,7 @@ extern "C" void action_save_settings(lv_event_t *e) {
     }
 
     // Generate JSON and save settings
-    char jsonBuffer[128];  // Reduced from 512 to 128 - sufficient for tank settings
+    char jsonBuffer[256];  // Reduced from 512 to 128 - sufficient for tank settings
     createSettingsJson(jsonBuffer, sizeof(jsonBuffer), tankIndex);
     writeFile(LittleFS, settings[tankIndex].c_str(), jsonBuffer);
     loadSettingsFile(jsonBuffer);
@@ -331,7 +331,7 @@ extern "C" void action_es_screen_load(lv_event_t *e) {
 
 // click sound
 extern "C" void action_keyboard_click_sound(lv_event_t *e) {
-   tone(BUZZER_PIN, 1023, 32);
+   tone(BUZZER_PIN, 2400, 32);
 }
 
 // PIN check function

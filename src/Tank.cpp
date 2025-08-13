@@ -88,33 +88,44 @@ void Tank::updateRelay() {
 }
 
 void Tank::updatePressureControl() {
-    // Skip pressure control if not configured
-    if (!hasPressure() || !output) {
+    if (!output) {
         return;
     }
 
+    // Close valve immediately if sensor error is detected
     if (sensorError != 0) {
-        if (relayState) {
-            // Serial.printf("[%lu] Tank %d: Sensor error %d, turning relay off\n", 
-            //              millis(), id, sensorError);
-            setRelayState(false);
-        }
+        setRelayState(false);
         return;
     }
 
     bool shouldBeOn = false;
     if (pressureMode == 1) {
         // Release mode
-        shouldBeOn = pressure >= (targetPressure + pressureDifferential);
+        if (pressure >= targetPressure + pressureDifferential) {
+            // Open valve when pressure exceeds target + differential
+            shouldBeOn = true;
+        } else if (pressure <= targetPressure) {
+            // Close valve when pressure drops to target
+            shouldBeOn = false;
+        } else {
+            // Keep previous state when in hysteresis band
+            shouldBeOn = relayState;
+        }
     } else {
         // Compression mode
-        shouldBeOn = pressure <= (targetPressure - pressureDifferential);
+        if (pressure <= targetPressure - pressureDifferential) {
+            // Open valve when pressure drops below target - differential
+            shouldBeOn = true;
+        } else if (pressure >= targetPressure) {
+            // Close valve when pressure reaches target
+            shouldBeOn = false;
+        } else {
+            // Keep previous state when in hysteresis band
+            shouldBeOn = relayState;
+        }
     }
 
     if (shouldBeOn != relayState) {
-        // Serial.printf("[%lu] Tank %d: Mode=%d, Pressure=%.3f, Target=%.3f, Diff=%.3f, Relay=%d->%d\n", 
-        //              millis(), id, pressureMode, pressure, targetPressure, pressureDifferential, 
-        //              relayState, shouldBeOn);
         setRelayState(shouldBeOn);
     }
 }
@@ -202,14 +213,28 @@ void Tank::updateTemperatureControl() {
 
     // Control cone temperature if configured
     if (hasConeTemp() && !coneTempError && coneTempOutput) {
-        bool shouldBeOn = tempMode == 1 ? 
-            coneTemp <= (targetTemp - tempDifferential) :  // Heating
-            coneTemp >= (targetTemp + tempDifferential);   // Cooling
+        bool shouldBeOn = coneTempRelayState;  // default: keep current state
+
+        if (tempMode == 1) {
+            // Heating mode
+            if (!coneTempRelayState && (coneTemp <= (targetTemp - tempDifferential))) {
+                shouldBeOn = true;  // Turn ON heater below lower threshold
+            } else if (coneTempRelayState && (coneTemp >= targetTemp)) {
+                shouldBeOn = false;  // Turn OFF heater at or above target temperature
+            }
+        } else {
+            // Cooling mode
+            if (!coneTempRelayState && (coneTemp >= (targetTemp + tempDifferential))) {
+                shouldBeOn = true;  // Turn ON cooler above upper threshold
+            } else if (coneTempRelayState && (coneTemp <= targetTemp)) {
+                shouldBeOn = false;  // Turn OFF cooler at or below target temperature
+            }
+        }
 
         if (shouldBeOn != coneTempRelayState) {
-            Serial.printf("[%lu] Tank %d Cone: Mode=%d, Temp=%.1f, Target=%.1f, Diff=%.1f, Relay=%d->%d\n", 
-                         millis(), id, tempMode, coneTemp, targetTemp, tempDifferential, 
-                         coneTempRelayState, shouldBeOn);
+            Serial.printf("[%lu] Tank %d Cone: Mode=%d, Temp=%.1f, Target=%.1f, Diff=%.1f, Relay=%d->%d\n",
+                millis(), id, tempMode, coneTemp, targetTemp, tempDifferential,
+                coneTempRelayState, shouldBeOn);
             coneTempRelayState = shouldBeOn;
             coneChanged = true;
         }
@@ -217,20 +242,34 @@ void Tank::updateTemperatureControl() {
 
     // Control head temperature if configured
     if (hasHeadTemp() && !headTempError && headTempOutput) {
-        bool shouldBeOn = tempMode == 1 ? 
-            headTemp <= (targetTemp - tempDifferential) :  // Heating
-            headTemp >= (targetTemp + tempDifferential);   // Cooling
+        bool shouldBeOn = headTempRelayState;  // default: keep current state
+
+        if (tempMode == 1) {
+            // Heating mode
+            if (!headTempRelayState && (headTemp <= (targetTemp - tempDifferential))) {
+                shouldBeOn = true;  // Turn ON heater below lower threshold
+            } else if (headTempRelayState && (headTemp >= targetTemp)) {
+                shouldBeOn = false;  // Turn OFF heater at or above target temperature
+            }
+        } else {
+            // Cooling mode
+            if (!headTempRelayState && (headTemp >= (targetTemp + tempDifferential))) {
+                shouldBeOn = true;  // Turn ON cooler above upper threshold
+            } else if (headTempRelayState && (headTemp <= targetTemp)) {
+                shouldBeOn = false;  // Turn OFF cooler at or below target temperature
+            }
+        }
 
         if (shouldBeOn != headTempRelayState) {
-            Serial.printf("[%lu] Tank %d Head: Mode=%d, Temp=%.1f, Target=%.1f, Diff=%.1f, Relay=%d->%d\n", 
-                         millis(), id, tempMode, headTemp, targetTemp, tempDifferential, 
-                         headTempRelayState, shouldBeOn);
+            Serial.printf("[%lu] Tank %d Head: Mode=%d, Temp=%.1f, Target=%.1f, Diff=%.1f, Relay=%d->%d\n",
+                millis(), id, tempMode, headTemp, targetTemp, tempDifferential,
+                headTempRelayState, shouldBeOn);
             headTempRelayState = shouldBeOn;
             headChanged = true;
         }
     }
 
-    // Update relays if states changed
+    // Update relays if any state changed
     if (coneChanged || headChanged) {
         updateTempRelays();
     }

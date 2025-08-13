@@ -21,9 +21,12 @@
         <option value="filesystem">File System (SPIFFS/LittleFS)</option>
       </select>
       <br><br>
-      <input type="file" name="update" id="update" class="button">
+      <input type="file" name="update" id="update" class="button" accept=".bin">
       <br><br>
-      <input type="submit" value="Update" class="button" style="display: none;">
+      <input type="checkbox" id="lock">
+      <label for="lock" class="checkbox">Unlock Update</label>
+      <br><br>
+      <input type="submit" id="submitButton" value="Update" class="button" style="display: none;">
     </form>
     
     <div class="progressWrapper" style="display: none;">

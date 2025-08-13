@@ -1,1 +1,1 @@
-{"ssid":"nmks_2.4","password":"+73433744295","mqtt_host":"192.168.0.99","mqtt_port":"1883","mqtt_user":"openhabian","mqtt_password":"openhabian","mqtt_topic":"Rotorcraft_Brewery/Tankhouse/Pressure_Controller","teleperiod":30000}
+{"ssid":"VPLINK@16","password":"Rotor17#","mqtt_host":"192.168.0.100","mqtt_port":"1883","mqtt_user":"Pressure","mqtt_password":"RotorcraftBrewery","mqtt_topic":"Rotorcraft_Brewery/Tankhouse/Pressure_Controller","teleperiod":30000}

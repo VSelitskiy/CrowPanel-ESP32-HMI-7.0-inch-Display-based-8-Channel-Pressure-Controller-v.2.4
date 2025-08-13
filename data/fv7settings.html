@@ -19,7 +19,7 @@
   <div class="content">
     <div class="card-grid-2">
       <div class="card">
-        <form>
+        <form id="settingsForm">
           <p class="card-title">FV7 Settings</p>
 
           <i class="bi bi-speedometer" style="font-size:20px; color:rgb(255, 35, 119)"></i>
@@ -44,23 +44,23 @@
 
 
       <div class="card">
-        <form>
+        <form id="calibrationForm">
           <p class="card-title">FV7 Calibration Values</p>
 
           <i class="fa fa-dashboard" style="font-size:20px; color:rgb(255, 35, 119)"></i>
           <label for="sensorRange"> Sensor Range, bar:</label>
           <input class="fv-settings locked" type="number" id="sensorRange" name="sensorRange" min="1" max="6" step="0.5"
-            placeholder="1.000" disabled><br>
+            placeholder="2.5" disabled><br>
 
           <i class="fa fa-square-o" style="font-size:20px; color:rgb(255, 35, 119)"></i>
           <label for="volts_4"> 0% level voltage, V:</label>
           <input class="fv-settings locked" type="number" id="volts_4" name="volts_4" min="0" max="1" step="0.001"
-            placeholder="1.000" disabled><br>
+            placeholder="0.400" disabled><br>
 
           <i class="fa fa-square" style="font-size:20px; color:rgb(255, 35, 119)"></i>
           <label for="volts_20"> 100% level voltage, V:</label>
           <input class="fv-settings locked" type="number" id="volts_20" name="volts_20" min="1" max="6" step="0.001"
-            placeholder="1.000" disabled><br>
+            placeholder="2.000" disabled><br>
 
 
           <input type="checkbox" id="lock">
@@ -80,15 +80,6 @@
       </div>
     </div>
   </div>
-<!-- Modal for PIN entry -->
-<div id="pinModal" class="modal">
-  <div class="modal-content">
-    <span class="close">&times;</span>
-    <h3>Enter PIN Code</h3>
-    <input type="password" id="pinInput" maxlength="4" placeholder="****">
-    <button id="submitPin">Submit</button>
-  </div>
-</div>
 
   <script src="fvscript.js"></script>
 </body>

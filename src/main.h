@@ -61,7 +61,7 @@ extern const uint16_t WIFI_INTERVAL; // INTERVAL to wait for Wi-Fi connection (m
 extern const uint32_t LOG_INTERVAL; // Log interval in milliseconds (1 hour as an example) 
 
 // Shared process variables
-extern int8_t tankNumber;
+extern uint8_t tankNumber;
 extern String settings[NUMBER_OF_TANKS];
 
 // Shared variables to save values from Web-Manager HTML form and Web-Manager screen (to do...)
