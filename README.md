@@ -51,7 +51,7 @@ The pressure controller is implemented based on a 7.0" HMI Display TFT LCD Touch
 - TFT LCD capacitive touch display with 800x480 resolution.
 - Integrated ESP32-S3 module, frequency up to 240MHz, built-in wireless communication 2.4 GHz Wi-Fi (802.11 b/g/n) and Bluetooth-compatible 5.0, I2C Interface, battery backup Interface.
 - Up to 4 16-bit, 4-channel ADC, I2C Interface modules ADS1115.
-- 8/16 Channel I2C Interface Relay Module.
+- 8/16 Channel I2C Interface PCAL9535A Relay Module.
 - Up to 16 4..20 mA pressure sensors.
 - Up to 16 1/4” inox electric solenoid valves.
 The pressure controller is mounted in a wall-mounted polyester enclosure with a blank door and lock, dimensions 405X500X200 mm - IP66. Connection cables are introduced into the enclosure through waterproof cable glands. The operating voltage is 230V/50Hz, and the power consumption is primarily determined by the power of the simultaneously activated electric valves (~10 W per valve). 
