@@ -13,23 +13,23 @@
 #include <LittleFS.h>
 //#include <SD.h>
 #include <FTPServer.h>
-#include <SPI.h>
 #include <Preferences.h>
 #include <Adafruit_GFX.h>
 
-#include "time.h"
-#include "esp_sntp.h"
+#include <time.h>
+#include <esp_sntp.h>
+#include <map>
 
-#include "Tank.h"
-#include "PinConfig.h"  // Add the new include
 #include "main.h"
 #include "ui/ui.h"
 #include "ui/vars.h"
 #include "ui/actions.h" 
 #include "lgfx/lgfx.h"
-#include <map>
-#include "PCAL9535AOutput.h"
+
+#include "GPIOOutput.h"
 #include "SystemConfig.h"
+#include "Tank.h"
+#include "PinConfig.h"  // Add the new include
 
 // Definition of global variables
 Tank* tanks[NUMBER_OF_TANKS] = {nullptr};  // Array of tank object pointers
@@ -58,7 +58,7 @@ std::map<int, unsigned long> lastErrorLogTime; // Map to store the last log time
 
 // Constants
 
-const char* FIRMWARE_VERSION = "2.0.0"; // v.1.2.1 + OTA + LWT + Extended JSON on MQTT - Define firmware version 
+const char* FIRMWARE_VERSION = "2.1.2"; // v.1.2.1 + OTA + LWT + Extended JSON on MQTT + Temperature display - Define firmware version 
 
 // const char* PRESET_PIN = "0808";
 const uint16_t INTERVAL = 60000; // INTERVAL to wait for Wi-Fi connection (milliseconds)
@@ -109,6 +109,7 @@ String mqtt_topic;
 char mqtt_topic_cmnd[MQTT_TOPIC_MAX_LENGTH];
 char mqtt_topic_sensor[MQTT_TOPIC_MAX_LENGTH];
 char mqtt_topic_state[MQTT_TOPIC_MAX_LENGTH];
+char mqtt_topic_temperature[MQTT_TOPIC_MAX_LENGTH];
 char mqtt_topic_lwt[MQTT_TOPIC_MAX_LENGTH];
 char mqtt_topic_state_fv[MQTT_TOPIC_MAX_LENGTH];
 char mqtt_server_url[MQTT_TOPIC_MAX_LENGTH];
@@ -124,6 +125,7 @@ String tankSettings[NUMBER_OF_TANKS];
 // char *mqtt_topic_cmnd = (char *)"Rotorcraft_Brewery/Tankhouse/Pressure_Controller/cmnd";
 // char *mqtt_topic_sensor = (char *)"Rotorcraft_Brewery/Tankhouse/Pressure_Controller/tele/SENSOR";
 // char *mqtt_topic_state = (char *)"Rotorcraft_Brewery/Tankhouse/Pressure_Controller/tele/STATE";
+// char *mqtt_topic_temperature = (char *)"Rotorcraft_Brewery/Tankhouse/Fermenters/tele/SENSOR";
 
 //NTP Time constants
 const char* ntpServer1 = "pool.ntp.org";
@@ -153,7 +155,53 @@ void (*setPressureFuncs[NUMBER_OF_TANKS])(float) = {
   set_var_fv6_pressure, 
   set_var_fv7_pressure, 
   set_var_fv8_pressure 
-  }; 
+  };
+// Array of function pointers to set_var_fvi_relay_cone(bool value) functions
+void (*setRelayConeStateFuncs[NUMBER_OF_TANKS])(bool) = { 
+  set_var_fv1_relay_cone, 
+  set_var_fv2_relay_cone, 
+  set_var_fv3_relay_cone, 
+  set_var_fv4_relay_cone, 
+  set_var_fv5_relay_cone, 
+  set_var_fv6_relay_cone, 
+  set_var_fv7_relay_cone, 
+  set_var_fv8_relay_cone 
+  };
+// Array of function pointers to set_var_fvi_relay_head functions
+void (*setRelayHeadStateFuncs[NUMBER_OF_TANKS])(bool) = { 
+  set_var_fv1_relay_head, 
+  set_var_fv2_relay_head, 
+  set_var_fv3_relay_head, 
+  set_var_fv4_relay_head, 
+  set_var_fv5_relay_head, 
+  set_var_fv6_relay_head, 
+  set_var_fv7_relay_head, 
+  set_var_fv8_relay_head 
+  };
+// Array of function pointers to set_var_fvi_temp_cone functions
+void (*setTempConeFuncs[NUMBER_OF_TANKS])(float) = { 
+  set_var_fv1_temp_cone, 
+  set_var_fv2_temp_cone, 
+  set_var_fv3_temp_cone, 
+  set_var_fv4_temp_cone, 
+  set_var_fv5_temp_cone, 
+  set_var_fv6_temp_cone, 
+  set_var_fv7_temp_cone, 
+  set_var_fv8_temp_cone 
+  };
+// Array of function pointers to set_var_fvi_temp_head functions
+void (*setTempHeadFuncs[NUMBER_OF_TANKS])(float) = { 
+  set_var_fv1_temp_head, 
+  set_var_fv2_temp_head, 
+  set_var_fv3_temp_head, 
+  set_var_fv4_temp_head, 
+  set_var_fv5_temp_head, 
+  set_var_fv6_temp_head, 
+  set_var_fv7_temp_head, 
+  set_var_fv8_temp_head 
+  };
+
+
 String getReadableTime();
 
 // Create AsyncWebServer object on port 80
@@ -303,6 +351,7 @@ void updateMQTTTopics() {
     snprintf(mqtt_topic_sensor, MQTT_TOPIC_MAX_LENGTH, "%s%s", mqtt_topic.c_str(), MQTT_SUFFIX_SENSOR);
     snprintf(mqtt_topic_state, MQTT_TOPIC_MAX_LENGTH, "%s%s", mqtt_topic.c_str(), MQTT_SUFFIX_STATE);
     snprintf(mqtt_topic_lwt, MQTT_TOPIC_MAX_LENGTH, "%s%s", mqtt_topic.c_str(), MQTT_SUFFIX_LWT);
+    snprintf(mqtt_topic_temperature, MQTT_TOPIC_MAX_LENGTH, "%s%s", mqtt_topic.c_str(), MQTT_SUFFIX_TEMPERATURE);
 }
 
 void updateMQTTServer() {
@@ -449,7 +498,7 @@ bool checkI2CDevice(uint8_t address) {
 
 // Function for averaging 4 readings on a selected ADS1115 channel
 int16_t readAverageChannel(Adafruit_ADS1115 &adc, uint8_t channel, uint8_t samples = 4) {
-  long sum = 0;
+  int32_t sum = 0;
   for (uint8_t i = 0; i < samples; i++) {
     int16_t val = adc.readADC_SingleEnded(channel);
     // readADC_SingleEnded already waits for conversion to complete inside
@@ -476,6 +525,10 @@ String getSensorReadings() {
   JsonArray data = readings["pressure"].to<JsonArray>();
   JsonArray _error = readings["sensorError"].to<JsonArray>();
   JsonArray state = readings["state"].to<JsonArray>();
+  JsonArray headTemp = readings["headTemp"].to<JsonArray>(); 
+  JsonArray coneTemp = readings["coneTemp"].to<JsonArray>(); 
+  JsonArray headRelay = readings["headRelay"].to<JsonArray>();
+  JsonArray coneRelay = readings["coneRelay"].to<JsonArray>();
   bool hasError = false;
 
   for (uint8_t j = 0; j < NUMBER_OF_TANKS; j++) {
@@ -492,7 +545,9 @@ String getSensorReadings() {
               hasError = true;
               updatePressure = false;
           } else {
-              int16_t adcValue = ads0048.readADC_SingleEnded(j);
+              //int16_t adcValue = ads0048.readADC_SingleEnded(j);
+              int16_t adcValue = readAverageChannel(ads0048, j);
+
               tanks[j]->setADCValue(adcValue);
               
               if (!ads0048.conversionComplete()) {
@@ -519,7 +574,8 @@ String getSensorReadings() {
               hasError = true;
               updatePressure = false;
           } else {
-              int16_t adcValue = ads0049.readADC_SingleEnded(j - 4);
+              //int16_t adcValue = ads0049.readADC_SingleEnded(j - 4);
+              int16_t adcValue = readAverageChannel(ads0049, j - 4);
               tanks[j]->setADCValue(adcValue);
               
               if (!ads0049.conversionComplete()) {
@@ -556,6 +612,10 @@ String getSensorReadings() {
       data.add(tanks[j]->getPressure());
       _error.add(tanks[j]->getSensorError());
       state.add(tanks[j]->getRelayState() ? 1 : 0);
+      headTemp.add(tanks[j]->getHeadTemp()); 
+      coneTemp.add(tanks[j]->getConeTemp());
+      headRelay.add(tanks[j]->getHeadTempRelayState() ? 1 : 0);
+      coneRelay.add(tanks[j]->getConeTempRelayState() ? 1 : 0); 
   }
 
   // Nested object System in readings json object
@@ -975,18 +1035,33 @@ void WebManager() {
 // Subscribe mqtt topic
 void SuscribeMqtt()
 {
+  // Flag to track if all subscriptions are successful
+  bool allSubscribed = true;
+
+  // Subscribe to command topic with QoS 2
   uint16_t packetIdSub2 = mqttClient.subscribe(mqtt_topic_cmnd, 2);
-  Serial.print("Subscribing at QoS 2, packetId: ");
+  Serial.print("Subscribing to ");
+  Serial.print(mqtt_topic_cmnd);       // print full topic address
+  Serial.print(" at QoS 2, packetId: ");
   Serial.println(packetIdSub2);
-  if (packetIdSub2 != -1) 
-  {
-    set_var_mqtt_status(true);
+  if (packetIdSub2 == -1) {
+    allSubscribed = false;  // mark failure if subscription failed
   }
-  else
-  {
-    set_var_mqtt_status(false);
-  }    
+
+  // Subscribe to temperature topic with QoS 2
+  uint16_t packetIdTemp = mqttClient.subscribe(mqtt_topic_temperature, 2);
+  Serial.print("Subscribing to ");
+  Serial.print(mqtt_topic_temperature);  // print full topic address
+  Serial.print(" at QoS 2, packetId: ");
+  Serial.println(packetIdTemp);
+  if (packetIdTemp == -1) {
+    allSubscribed = false;  // mark failure if subscription failed
+  }
+  
+  // Set MQTT status flag based on overall subscription success
+  set_var_mqtt_status(allSubscribed);
 }
+
 
 void onMqttConnect(bool sessionPresent)
 {
@@ -1015,74 +1090,119 @@ void onMqttMessage(char *topic, char *payload, int retain, int qos, bool dup)
     Serial.printf("  dup: %d\r\n", dup);
     Serial.printf("  retain: %d\r\n", retain);
     
-    JsonDocument doc;
+    JsonDocument doc; // must specify capacity in ArduinoJson v7
     DeserializationError error = deserializeJson(doc, payload);
     
-    if (!error)
+    if (error) {
+        Serial.print("JSON deserialization failed: ");
+        Serial.println(error.c_str());
+        return;
+    }
+
+    // Handle temperature topic
+    if (strcmp(topic, mqtt_topic_temperature) == 0)
     {
-        JsonObject obj = doc.as<JsonObject>();
-        const char *_teleperiod = obj["teleperiod"].as<const char *>();
-        if (_teleperiod != nullptr)
+        if (doc["temperatureSensorCone"].is<JsonArray>() && doc["temperatureSensorHead"].is<JsonArray>() &&
+          doc["temperatureRelayCone"].is<JsonArray>() && doc["temperatureRelayHead"].is<JsonArray>())
+          {
+            JsonArray coneTemps = doc["temperatureSensorCone"].as<JsonArray>();
+            JsonArray headTemps = doc["temperatureSensorHead"].as<JsonArray>();
+            JsonArray coneRelays = doc["temperatureRelayCone"].as<JsonArray>();
+            JsonArray headRelays = doc["temperatureRelayHead"].as<JsonArray>();
+
+            size_t n = min(min(coneTemps.size(), headTemps.size()), min(coneRelays.size(), headRelays.size()));
+            n = min(n, (size_t)NUMBER_OF_TANKS);
+
+            for (size_t i = 0; i < n; i++) {
+              if (tanks[i]) {
+                tanks[i]->setConeTemp(coneTemps[i].as<float>());
+                tanks[i]->setHeadTemp(headTemps[i].as<float>());
+
+                // Use as<bool>() for relay states (ArduinoJson v7 style)
+                tanks[i]->setConeTempRelayState(coneRelays[i].as<bool>());
+                tanks[i]->setHeadTempRelayState(headRelays[i].as<bool>());
+                
+                setRelayConeStateFuncs[i](tanks[i]->getConeTempRelayState());
+                setRelayHeadStateFuncs[i](tanks[i]->getHeadTempRelayState());
+                setTempConeFuncs[i](tanks[i]->getConeTemp());
+                setTempHeadFuncs[i](tanks[i]->getHeadTemp());
+              }
+            }
+      }
+        else
         {
-            uint16_t _TelePeriod = atoi(_teleperiod);
-            if (_TelePeriod != 0)
-            {
-                if (_TelePeriod > 1000) _TelePeriod = 1000;
-                telePeriod = _TelePeriod * 1000;
-                writeFile(LittleFS, jsonWiFiConfigFile, saveConfigFile(wifi_config).c_str());
-            }
-            else
-            {
-                doc["teleperiod"] = telePeriod / 1000;
-                String output;
-                serializeJson(doc, output);
-            }
+            Serial.println("Temperature JSON missing expected keys.");
         }
-        
-        const char *_tanknumber = obj["tankNumber"].as<const char *>();
-        const char *_setPressure = obj["setPressure"].as<const char *>();
-        const char *_pressureDifferential = obj["pressureDifferential"].as<const char *>();
-        const char *_pressureMode = obj["pressureMode"].as<const char *>();
-        
-        uint8_t i = 0;
-        if (_tanknumber != nullptr)
+        return;
+    }
+
+    // Handle other topics (e.g. command)
+    JsonObject obj = doc.as<JsonObject>();
+
+    const char *_teleperiod = obj["teleperiod"].as<const char *>();
+    if (_teleperiod != nullptr)
+    {
+        uint16_t _TelePeriod = atoi(_teleperiod);
+        if (_TelePeriod != 0)
         {
-            i = atoi(_tanknumber);
-            int tankIndex = i - 1;
-            
-            if (tanks[tankIndex]) {
-                if (_setPressure != nullptr)
-                {
-                    tanks[tankIndex]->setSetPressure(atof(_setPressure));
-                }
-                else if (_pressureDifferential != nullptr)
-                {
-                    float diff = atof(_pressureDifferential);
-                    if (diff == 0) diff = 0.006;
-                    tanks[tankIndex]->setPressureDifferential(diff);
-                }
-                else if (_pressureMode != nullptr)
-                {
-                    tanks[tankIndex]->setPressureMode(atoi(_pressureMode));
-                }
-                
-                doc["setPressure"] = tanks[tankIndex]->getSetPressure();
-                doc["pressureDifferential"] = tanks[tankIndex]->getPressureDifferential();
-                doc["pressureMode"] = tanks[tankIndex]->getPressureMode();
-                doc["volts_4"] = tanks[tankIndex]->getVolts4();
-                doc["volts_20"] = tanks[tankIndex]->getVolts20();
-                doc["sensorRange"] = tanks[tankIndex]->getSensorRange();
-                
-                String output;
-                serializeJson(doc, output);
-                writeFile(LittleFS, settings[i - 1].c_str(), output.c_str());
-                
-                formatTankStateTopic(mqtt_topic_state_fv, i);
-                PublishMqtt(output, mqtt_topic_state_fv);
-                delay(100);
-                PublishMqtt(getSensorReadings(), mqtt_topic_sensor);
-                ws1.textAll(output);
+            if (_TelePeriod > 1000) _TelePeriod = 1000;
+            telePeriod = _TelePeriod * 1000;
+            writeFile(LittleFS, jsonWiFiConfigFile, saveConfigFile(wifi_config).c_str());
+        }
+        else
+        {
+            doc["teleperiod"] = telePeriod / 1000;
+            String output;
+            serializeJson(doc, output);
+        }
+    }
+
+    const char *_tanknumber = obj["tankNumber"].as<const char *>();
+    const char *_setPressure = obj["setPressure"].as<const char *>();
+    const char *_pressureDifferential = obj["pressureDifferential"].as<const char *>();
+    const char *_pressureMode = obj["pressureMode"].as<const char *>();
+
+    uint8_t i = 0;
+    if (_tanknumber != nullptr)
+    {
+        i = atoi(_tanknumber);
+        int tankIndex = i - 1;
+        if (tankIndex >= 0 && tankIndex < NUMBER_OF_TANKS && tanks[tankIndex]) {
+            if (_setPressure != nullptr)
+            {
+                tanks[tankIndex]->setSetPressure(atof(_setPressure));
             }
+            else if (_pressureDifferential != nullptr)
+            {
+                float diff = atof(_pressureDifferential);
+                if (diff == 0) diff = 0.006f;
+                tanks[tankIndex]->setPressureDifferential(diff);
+            }
+            else if (_pressureMode != nullptr)
+            {
+                tanks[tankIndex]->setPressureMode(atoi(_pressureMode));
+            }
+
+            doc["setPressure"] = tanks[tankIndex]->getSetPressure();
+            doc["pressureDifferential"] = tanks[tankIndex]->getPressureDifferential();
+            doc["pressureMode"] = tanks[tankIndex]->getPressureMode();
+            doc["volts_4"] = tanks[tankIndex]->getVolts4();
+            doc["volts_20"] = tanks[tankIndex]->getVolts20();
+            doc["sensorRange"] = tanks[tankIndex]->getSensorRange();
+
+            String output;
+            serializeJson(doc, output);
+            writeFile(LittleFS, settings[i - 1].c_str(), output.c_str());
+
+            formatTankStateTopic(mqtt_topic_state_fv, i);
+            PublishMqtt(output, mqtt_topic_state_fv);
+            delay(100);
+            PublishMqtt(getSensorReadings(), mqtt_topic_sensor);
+            ws1.textAll(output);
+        }
+        else
+        {
+            Serial.println("Invalid tank index or null tank object.");
         }
     }
 }
@@ -1140,28 +1260,40 @@ String getReadableTime() {
   minutes = seconds / 60;
   hours = minutes / 60;
   days = hours / 24;
+  
   currentMillis %= 1000;
   seconds %= 60;
   minutes %= 60;
   hours %= 24;
 
   if (days > 0) {
+    // When days exist, do not display seconds
     readableTime = String(days) + " days ";
-  }
-
-  if (hours > 0) {
+    if (hours < 10) {
+      readableTime += "0";
+    }
     readableTime += String(hours) + ":";
+    if (minutes < 10) {
+      readableTime += "0";
+    }
+    readableTime += String(minutes);
+  } else {
+    // No days, display hours:minutes:seconds
+    if (hours > 0) {
+      readableTime = String(hours) + ":";
+    } else {
+      readableTime = "";
+    }
+    if (minutes < 10) {
+      readableTime += "0";
+    }
+    readableTime += String(minutes) + ":";
+    if (seconds < 10) {
+      readableTime += "0";
+    }
+    readableTime += String(seconds);
   }
 
-  if (minutes < 10) {
-    readableTime += "0";
-  }
-  readableTime += String(minutes) + ":";
-
-  if (seconds < 10) {
-    readableTime += "0";
-  }
-  readableTime += String(seconds);
   return readableTime;
 }
 
@@ -1242,6 +1374,7 @@ void setup()
   // Note: Key name is limited to 15 chars.
   bootCounter = preferences.getUInt("bootCounter", 0);
   // Increase bootCounter by 1
+  bootCounter++;
   // Print the bootCounter to Serial Monitor
   Serial.printf("Current bootCounter value: %u\n", bootCounter);
   // Store the bootCounter to the Preferences
@@ -1263,7 +1396,8 @@ void setup()
   set_var_wifi_status(-1);
   set_var_mqtt_status(false);
   set_var_firmware_version(FIRMWARE_VERSION);
-  // set_var_preset_pin(PRESET_PIN);
+  set_var_enable_cone(true); // Enable cone temperatures on the display
+  set_var_enable_head(true); // Enable head temperatures on the display
 
   // Setup the panel
   lcd.setup();
@@ -1301,8 +1435,8 @@ void setup()
   Serial.println("ADC Range: 1x gain   +/- 4.096V  1 bit = 0.125mV");
   ads0048.setGain(GAIN_ONE); // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
   ads0049.setGain(GAIN_ONE); // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
-  // ads0048.setDataRate(RATE_ADS1115_250SPS); // 250 SPS
-  // ads0049.setDataRate(RATE_ADS1115_250SPS); // 250 SPS
+  ads0048.setDataRate(RATE_ADS1115_250SPS); // 250 SPS
+  ads0049.setDataRate(RATE_ADS1115_250SPS); // 250 SPS
   init_ads0048 = ads0048.begin(0x48);
   init_ads0049 = ads0049.begin(0x49);
   if (!init_ads0048)
@@ -1414,6 +1548,10 @@ void loop()
     for (int j = 0; j < NUMBER_OF_TANKS; j++) { 
         if (tanks[j]) {
             setPressureFuncs[j](tanks[j]->getPressure()); 
+            setRelayConeStateFuncs[j](tanks[j]->getConeTempRelayState());
+            setRelayHeadStateFuncs[j](tanks[j]->getHeadTempRelayState());
+            setTempConeFuncs[j](tanks[j]->getConeTemp());
+            setTempHeadFuncs[j](tanks[j]->getHeadTemp());
         }
     }
     { // Lock the mutex for tankNumber to ensure thread safety 

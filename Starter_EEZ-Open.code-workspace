@@ -5,6 +5,10 @@
 		},
 		{
 			"path": "../v.1.2.1"
+		},
+		{
+			"name": "Universal Pressure and Temperature Controller - Main Module",
+			"path": "../../Universal Pressure and Temperature Controller - Main Module"
 		}
 	],
 	"settings": {

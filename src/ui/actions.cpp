@@ -304,7 +304,7 @@ void display_error_messages() {
     char buffer[256];
     
     for (const auto& error : getErrorMessages()) { 
-        snprintf(buffer, sizeof(buffer), "%s: %s", error.timestamp, error.message.c_str());
+        snprintf(buffer, sizeof(buffer), "%s: %s", error.timestamp.c_str(), error.message.c_str());
         lv_list_add_text(objects.es_error_list, buffer);
     }
 }

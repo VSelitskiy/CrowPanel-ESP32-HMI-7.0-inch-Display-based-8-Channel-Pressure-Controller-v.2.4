@@ -116,14 +116,16 @@ public:
     void setSensorError(int8_t error) { sensorError = error; }
 
     // Temperature setters
-    void setConeTemp(float value);
-    void setHeadTemp(float value);
+    void setConeTemp(float value) { coneTemp = value; };
+    void setHeadTemp(float value) { headTemp = value; };
     void setTargetTemp(float value);
     void setTempDifferential(float value);
     void setTempMode(int8_t mode);  // 0 = cooling, 1 = heating
     void setTempConfig(TempSensorConfig config);
     void setConeTempError(int8_t error) { coneTempError = error; }
     void setHeadTempError(int8_t error) { headTempError = error; }
+    void setConeTempRelayState(bool state) { coneTempRelayState = state; updateTempRelays(); }
+    void setHeadTempRelayState(bool state) { headTempRelayState = state; updateTempRelays(); }
 
     // Temperature ADC and voltage setters
     void setConeTempADC(int16_t value) { coneTempADC = value; }

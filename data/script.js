@@ -8,7 +8,7 @@ let lastConeTempValues = [];  // Store last cone temperature values
 
 // Variables for WebSockets
 var gateway = `ws://${window.location.hostname}/ws`;
-var websocket = new WebSocket(gateway);
+var websocket;
 
 // Get current sensor readings when the page loads  
 //window.addEventListener('load', getReadings);
@@ -21,11 +21,11 @@ function onLoad(event) {
 
 function initWebSocket() {
   console.log('Trying to open a WebSocket connection...');
-  websocket.onopen = onOpen;
-  websocket.onclose = onClose;
-  websocket.onmessage = function (e) {
-    processCommand(e);
-  };
+  websocket = new WebSocket(gateway);
+  websocket.onopen    = onOpen;
+  websocket.onclose   = onClose;
+  websocket.onerror   = onError;
+  websocket.onmessage = (e) => processCommand(e);
 }
 
 function onOpen(event) {
@@ -33,7 +33,13 @@ function onOpen(event) {
 }
 
 function onClose(event) {
-  console.log('Connection closed');
+  console.log('Connection closed, reconnecting in 3s...');
+  setTimeout(initWebSocket, 3000); // <-- вот чего не хватало
+}
+
+function onError(event) {
+  console.log('WebSocket error, closing...');
+  websocket.close(); // onClose сам запустит реконнект
 }
 
 function processCommand(e) {
@@ -270,50 +276,54 @@ function createGauges(config) {
 }
 
 function createTankCards(config) {
-    const cardGrid = document.querySelector('.card-grid');
-    cardGrid.innerHTML = '';
-    
-    for (let i = 0; i < TanksNumber; i++) {
-        const tankNum = i + 1;
-        const card = document.createElement('div');
-        card.className = 'card';
-        
-        let gaugeHTML = `
-            <p class="card-title">FV${tankNum}</p>
-            <div class="gauge-container">`;
-        
-        // Check if any gauges are enabled
-        const hasHeadTemp = config.tempConfig === 2 || config.tempConfig === 3;
-        const hasConeTemp = config.tempConfig === 1 || config.tempConfig === 3;
-        const hasPressure = config.pressureConfig === 1;
-        
-        if (!hasHeadTemp && !hasConeTemp && !hasPressure) {
-            gaugeHTML += `<p class="no-gauges-message">All sensors are disabled. Please enable sensors in Configuration.</p>`;
-        } else {
-            // Head temperature gauge first
-            if (hasHeadTemp) {
-                gaugeHTML += `<canvas id="fv${tankNum}-gauge-head-temp" height="200"></canvas>`;
-            }
-            // Cone temperature gauge second
-            if (hasConeTemp) {
-                gaugeHTML += `<canvas id="fv${tankNum}-gauge-cone-temp" height="200"></canvas>`;
-            }
-            // Pressure gauge last
-            if (hasPressure) {
-                gaugeHTML += `<canvas id="fv${tankNum}-gauge-pressure" height="250"></canvas>`;
-            }
-        }
-        
-        gaugeHTML += `
-            </div>
-            <a href="/fv${tankNum}settings.html">
-                <button class="button">FV${tankNum} Settings</button>
-            </a>`;
-        
-        card.innerHTML = gaugeHTML;
-        cardGrid.appendChild(card);
-    }
+  const cardGrid = document.querySelector('.card-grid');
+  cardGrid.innerHTML = '';
+  
+  for (let i = 0; i < TanksNumber; i++) {
+      const tankNum = i + 1;
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      let gaugeHTML = `
+          <p class="card-title">FV${tankNum}</p>
+          <div class="gauge-container">
+              <div class="thermometer-row" style="display: flex; flex-direction: row; justify-content: center;">
+      `;
+
+      const hasHeadTemp = config.tempConfig === 2 || config.tempConfig === 3;
+      const hasConeTemp = config.tempConfig === 1 || config.tempConfig === 3;
+      const hasPressure = config.pressureConfig === 1;
+
+      if (!hasHeadTemp && !hasConeTemp && !hasPressure) {
+          gaugeHTML += `<p class="no-gauges-message">All sensors are disabled. Please enable sensors in Configuration.</p>`;
+      } else {
+          // Add thermometers side by side
+          if (hasHeadTemp) {
+              gaugeHTML += `<canvas id="fv${tankNum}-gauge-head-temp" height="200"></canvas>`;
+          }
+          if (hasConeTemp) {
+              gaugeHTML += `<canvas id="fv${tankNum}-gauge-cone-temp" height="200"></canvas>`;
+          }
+          gaugeHTML += `</div>`; // Close thermometer-row
+
+          // Add pressure gauge below
+          if (hasPressure) {
+              gaugeHTML += `<div style="margin-top: 12px;"><canvas id="fv${tankNum}-gauge-pressure" height="250"></canvas></div>`;
+          }
+      }
+
+      gaugeHTML += `
+          </div>
+          <a href="/fv${tankNum}settings.html">
+              <button class="button">FV${tankNum} Settings</button>
+          </a>`;
+
+      card.innerHTML = gaugeHTML;
+      cardGrid.appendChild(card);
+  }
 }
+
+
 
 // Menu handling
 function toggleMenu() {

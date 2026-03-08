@@ -18,6 +18,7 @@ constexpr uint8_t NUMBER_OF_TANKS = 8;
 constexpr const char* MQTT_SUFFIX_CMND = "/cmnd";
 constexpr const char* MQTT_SUFFIX_SENSOR = "/tele/SENSOR";
 constexpr const char* MQTT_SUFFIX_STATE = "/tele/STATE";
+constexpr const char* MQTT_SUFFIX_TEMPERATURE = "/tele/TEMPERATURE";
 constexpr const char* MQTT_SUFFIX_LWT = "/tele/LWT";
 constexpr const char* MQTT_SUFFIX_FV = "/FV";
 constexpr size_t MQTT_TOPIC_MAX_LENGTH = 128;

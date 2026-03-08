@@ -271,7 +271,7 @@ void remove_style_textarea(lv_obj_t *obj) {
 
 void init_style_fv_label_MAIN_DEFAULT(lv_style_t *style) {
     lv_style_set_text_color(style, lv_color_hex(0xff004178));
-    lv_style_set_text_font(style, &lv_font_montserrat_22);
+    lv_style_set_text_font(style, &lv_font_montserrat_16);
 };
 
 lv_style_t *get_style_fv_label_MAIN_DEFAULT() {
@@ -459,6 +459,45 @@ void remove_style_fv_keyboard(lv_obj_t *obj) {
 };
 
 //
+// Style: Meter label
+//
+
+void init_style_meter_label_MAIN_DEFAULT(lv_style_t *style) {
+    lv_style_set_text_color(style, lv_color_hex(0xff808080));
+    lv_style_set_text_align(style, LV_TEXT_ALIGN_CENTER);
+    lv_style_set_text_font(style, &lv_font_montserrat_10);
+    lv_style_set_text_letter_space(style, -1);
+};
+
+lv_style_t *get_style_meter_label_MAIN_DEFAULT() {
+    static lv_style_t *style;
+    if (!style) {
+        style = lv_mem_alloc(sizeof(lv_style_t));
+        lv_style_init(style);
+        init_style_meter_label_MAIN_DEFAULT(style);
+    }
+    return style;
+};
+
+void add_style_meter_label(lv_obj_t *obj) {
+    lv_obj_add_style(obj, get_style_meter_label_MAIN_DEFAULT(), LV_PART_MAIN | LV_STATE_DEFAULT);
+};
+
+void remove_style_meter_label(lv_obj_t *obj) {
+    lv_obj_remove_style(obj, get_style_meter_label_MAIN_DEFAULT(), LV_PART_MAIN | LV_STATE_DEFAULT);
+};
+
+//
+// Style: Led_Temp
+//
+
+void add_style_led_temp(lv_obj_t *obj) {
+};
+
+void remove_style_led_temp(lv_obj_t *obj) {
+};
+
+//
 //
 //
 
@@ -477,6 +516,8 @@ void add_style(lv_obj_t *obj, int32_t styleIndex) {
         add_style_wm_label,
         add_style_settings_labels,
         add_style_fv_keyboard,
+        add_style_meter_label,
+        add_style_led_temp,
     };
     add_style_funcs[styleIndex](obj);
 }
@@ -496,6 +537,8 @@ void remove_style(lv_obj_t *obj, int32_t styleIndex) {
         remove_style_wm_label,
         remove_style_settings_labels,
         remove_style_fv_keyboard,
+        remove_style_meter_label,
+        remove_style_led_temp,
     };
     remove_style_funcs[styleIndex](obj);
 }

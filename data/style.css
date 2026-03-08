@@ -324,3 +324,41 @@ select:disabled {
     cursor: not-allowed;
     opacity: 0.7;
 }
+
+.thermometer-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 18px;  /* Adjust gap value as needed (e.g., 10px, 18px, 24px) */
+}
+
+
+.led-row {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  margin-top: 10px;
+}
+
+.led-label-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.led-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #222;  /* off state is dark */
+  box-shadow: none;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.led-indicator.active {
+  background-color: #0a7c0a;  /* green active */
+  box-shadow: 0 0 12px 3px #0a7c0a;
+}

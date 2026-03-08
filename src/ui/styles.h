@@ -73,6 +73,15 @@ lv_style_t *get_style_fv_keyboard_ITEMS_DEFAULT();
 void add_style_fv_keyboard(lv_obj_t *obj);
 void remove_style_fv_keyboard(lv_obj_t *obj);
 
+// Style: Meter label
+lv_style_t *get_style_meter_label_MAIN_DEFAULT();
+void add_style_meter_label(lv_obj_t *obj);
+void remove_style_meter_label(lv_obj_t *obj);
+
+// Style: Led_Temp
+void add_style_led_temp(lv_obj_t *obj);
+void remove_style_led_temp(lv_obj_t *obj);
+
 
 
 #ifdef __cplusplus
