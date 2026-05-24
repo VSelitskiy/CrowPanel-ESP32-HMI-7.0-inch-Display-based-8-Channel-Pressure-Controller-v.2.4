@@ -58,13 +58,14 @@ std::map<int, unsigned long> lastErrorLogTime; // Map to store the last log time
 
 // Constants
 
-const char* FIRMWARE_VERSION = "2.1.2"; // v.1.2.1 + OTA + LWT + Extended JSON on MQTT + Temperature display - Define firmware version 
+const char* FIRMWARE_VERSION = "2.1.3"; // v.1.2.1 + OTA + LWT + Extended JSON on MQTT + Temperature display - Define firmware version 
 
 // const char* PRESET_PIN = "0808";
 const uint16_t INTERVAL = 60000; // INTERVAL to wait for Wi-Fi connection (milliseconds)
 const uint16_t INDICATION_TIME = 2000; // control interval
 const uint32_t LOG_INTERVAL = 300000; // Log interval in milliseconds (1 hour as an example) 
 const uint32_t INACTIVITY_PERIOD = 120000; // 120 seconds of inactivity to switch of backlight
+uint32_t largestHeapBlockRestartThreshold = 16000; // 
 
 // Timer variables
 uint64_t previousMillis = 0;
@@ -625,6 +626,8 @@ String getSensorReadings() {
   System["upTimeSec"] = (int) millis()/1000;
   System["bootCounter"] = bootCounter;
   System["freeHeap"] = ESP.getFreeHeap();
+  System["largestHeapBlock"] = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+  System["largestHeapBlockRestartThreshold"] = largestHeapBlockRestartThreshold;
 
   JsonObject Wifi = readings["Wifi"].to<JsonObject>();
   Wifi["SSID"] = WiFi.SSID();
@@ -1139,6 +1142,41 @@ void onMqttMessage(char *topic, char *payload, int retain, int qos, bool dup)
     // Handle other topics (e.g. command)
     JsonObject obj = doc.as<JsonObject>();
 
+    // Handle largestHeapBlockRestartThreshold command
+    if (obj.containsKey("largestHeapBlockRestartThreshold")) {
+      uint32_t newThreshold =  obj["largestHeapBlockRestartThreshold"].as<uint32_t>();
+      // Send {"largestHeapBlockRestartThreshold":0} to disable watchdog
+      if (newThreshold == 0 || newThreshold >= 4000 && newThreshold <= 100000) {
+          largestHeapBlockRestartThreshold = newThreshold;
+          Serial.printf("largestHeapBlockRestartThreshold set to %u\n", largestHeapBlockRestartThreshold);
+      } else {
+          Serial.printf("Invalid largestHeapBlockRestartThreshold: %u\n", newThreshold);
+      }
+    }
+
+    // Handle restart command
+    if (obj.containsKey("restart")) 
+    {
+      bool restartRequested = false;
+      if (obj["restart"].is<int>()) 
+      {
+        restartRequested = (obj["restart"].as<int>() == 1);
+      } 
+      else if (obj["restart"].is<const char*>()) 
+      {
+        String restartValue = obj["restart"].as<String>();
+        restartValue.toUpperCase();
+        restartRequested = (restartValue == "1" || restartValue == "ON" || restartValue == "TRUE");
+      }
+      if (restartRequested) {
+        Serial.println("MQTT restart command received.");
+        mqttClient.publish(mqtt_topic_lwt, 1, true, "Restarting");
+        delay(500);
+        ESP.restart();
+      }
+    }
+
+    // Handle teleperiod command
     const char *_teleperiod = obj["teleperiod"].as<const char *>();
     if (_teleperiod != nullptr)
     {
@@ -1589,6 +1627,20 @@ void loop()
         
       }
     }
+    
+    // Watchdog largestHeapBlock
+    uint32_t largestBlock =  heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+    if (largestHeapBlockRestartThreshold > 0 && largestBlock < largestHeapBlockRestartThreshold) 
+    {
+      Serial.printf("[WATCHDOG] largestBlock=%u < threshold=%u -> restarting ESP32\n", largestBlock,
+          largestHeapBlockRestartThreshold
+      );
+
+      mqttClient.publish(mqtt_topic_lwt, 1, true, "Restarting: low largestHeapBlock");
+      delay(500);
+      ESP.restart();
+    }
+
   }
   ui_tick();
   lv_timer_handler(); /* let the GUI do its work */
