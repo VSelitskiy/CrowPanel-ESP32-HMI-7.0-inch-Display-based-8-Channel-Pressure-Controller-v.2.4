@@ -18,6 +18,7 @@
 
 #include <time.h>
 #include <esp_sntp.h>
+#include <esp_heap_caps.h>
 #include <map>
 
 #include "main.h"
@@ -1146,7 +1147,7 @@ void onMqttMessage(char *topic, char *payload, int retain, int qos, bool dup)
     if (obj.containsKey("largestHeapBlockRestartThreshold")) {
       uint32_t newThreshold =  obj["largestHeapBlockRestartThreshold"].as<uint32_t>();
       // Send {"largestHeapBlockRestartThreshold":0} to disable watchdog
-      if (newThreshold == 0 || newThreshold >= 4000 && newThreshold <= 100000) {
+      if (newThreshold == 0 || (newThreshold >= 4000 && newThreshold <= 100000)) {
           largestHeapBlockRestartThreshold = newThreshold;
           Serial.printf("largestHeapBlockRestartThreshold set to %u\n", largestHeapBlockRestartThreshold);
       } else {
@@ -1603,6 +1604,20 @@ void loop()
   if ((millis() - tele_millis) >= telePeriod)
   {
     tele_millis = millis();
+
+    // Watchdog largestHeapBlock
+    uint32_t largestBlock =  heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+    if (largestHeapBlockRestartThreshold > 0 && largestBlock < largestHeapBlockRestartThreshold) 
+    {
+      Serial.printf("[WATCHDOG] largestBlock=%u < threshold=%u -> restarting ESP32\n", largestBlock,
+          largestHeapBlockRestartThreshold
+      );
+
+      mqttClient.publish(mqtt_topic_lwt, 1, true, "Restarting: low largestHeapBlock");
+      delay(500);
+      ESP.restart();
+    }
+
     String output = getSensorReadings();
     PublishMqtt(output, mqtt_topic_sensor);
     ws.textAll(output);
@@ -1627,20 +1642,6 @@ void loop()
         
       }
     }
-    
-    // Watchdog largestHeapBlock
-    uint32_t largestBlock =  heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
-    if (largestHeapBlockRestartThreshold > 0 && largestBlock < largestHeapBlockRestartThreshold) 
-    {
-      Serial.printf("[WATCHDOG] largestBlock=%u < threshold=%u -> restarting ESP32\n", largestBlock,
-          largestHeapBlockRestartThreshold
-      );
-
-      mqttClient.publish(mqtt_topic_lwt, 1, true, "Restarting: low largestHeapBlock");
-      delay(500);
-      ESP.restart();
-    }
-
   }
   ui_tick();
   lv_timer_handler(); /* let the GUI do its work */
