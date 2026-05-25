@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }, 1000);
       } else {
-        alert('Upload failed');
+        alert('Upload failed: ' + (xhr.responseText || ('HTTP ' + xhr.status)));
       }
     });
 
