@@ -51,7 +51,7 @@ std::mutex tankNumber_mutex; // Define the mutex
 
 // Constants
 
-const char* FIRMWARE_VERSION = "2.1.3"; // v.1.2.1 + OTA + LWT + Extended JSON on MQTT + Temperature display - Define firmware version 
+const char* FIRMWARE_VERSION = "2.2.0"; // v.1.2.1 + OTA + LWT + Extended JSON on MQTT + Temperature display - Define firmware version 
 
 // const char* PRESET_PIN = "0808";
 const uint16_t INTERVAL = 60000; // INTERVAL to wait for Wi-Fi connection (milliseconds)
