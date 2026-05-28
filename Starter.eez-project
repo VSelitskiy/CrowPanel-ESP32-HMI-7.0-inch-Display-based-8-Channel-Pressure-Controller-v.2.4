@@ -98,7 +98,7 @@
       "separateFolderForImagesAndFonts": false,
       "lvglInclude": "lvgl.h",
       "generateSourceCodeForEezFramework": true,
-      "compressFlowDefinition": false,
+      "compressFlowDefinition": true,
       "executionQueueSize": 480,
       "expressionEvaluatorStackSize": 4
     }

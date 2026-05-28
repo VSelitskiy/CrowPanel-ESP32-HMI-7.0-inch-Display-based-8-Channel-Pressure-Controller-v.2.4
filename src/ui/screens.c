@@ -2917,7 +2917,7 @@ void create_screen_main() {
                             objects.fv6_led_head = obj;
                             lv_obj_set_pos(obj, -8, 128);
                             lv_obj_set_size(obj, 13, 13);
-                            lv_led_set_color(obj, lv_color_hex(0xff07e89b));
+                            lv_led_set_color(obj, lv_color_hex(0xff0a7c0a));
                             lv_obj_add_event_cb(obj, event_handler_cb_main_fv6_led_head, LV_EVENT_ALL, flowState);
                             add_style_led_temp(obj);
                         }
