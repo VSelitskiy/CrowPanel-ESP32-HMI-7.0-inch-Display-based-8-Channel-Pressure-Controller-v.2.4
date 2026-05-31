@@ -115,7 +115,7 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
   {
     data->state = LV_INDEV_STATE_REL;
   }
-  delay(15);
+  // delay(15);
 }
 
 void LGFX::setup()
@@ -150,9 +150,9 @@ void LGFX::setup()
   indev_drv.read_cb = my_touchpad_read;
   lv_indev_drv_register(&indev_drv);
   //
-  ledcSetup(1, 300, 8);
-  ledcAttachPin(TFT_BL, 1);
-  ledcWrite(1, 0); /* Screen brightness can be modified by adjusting this parameter. (0-255) */
+  // ledcSetup(1, 300, 8);
+  // ledcAttachPin(TFT_BL, 1);
+  // ledcWrite(1, 0); /* Screen brightness can be modified by adjusting this parameter. (0-255) */
   //
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, LOW);

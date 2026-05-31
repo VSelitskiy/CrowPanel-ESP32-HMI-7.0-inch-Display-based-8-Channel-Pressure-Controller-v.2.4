@@ -40,12 +40,6 @@ PCAL9535AOutput* tankOutputs[NUMBER_OF_TANKS] = {nullptr};  // Array of digital 
 // Configuration variables
 String wifi_config;
 
-// Definition of macros
-// #define SCK  12
-// #define MISO  13
-// #define MOSI  11
-// #define CS  10
-
 // Global objects
 // SPIClass spi = SPIClass(HSPI);
 Preferences preferences;
@@ -1465,13 +1459,13 @@ void setup()
   init_ads0049 = ads0049.begin(0x49);
   if (!init_ads0048)
   {
-    String errorMsg = "Failed to initialize ADS at 0x48.";
+    String errorMsg = "Failed init ADS at 0x48.";
     Serial.println(errorMsg);
     addErrorMessage(errorMsg, SENSOR_ERROR_INITIALIZATION, 2);
   }
   else if (!init_ads0049)
   {
-    String errorMsg = "Failed to initialize ADS at 0x48.";
+    String errorMsg = "Failed init ADS at 0x49.";
     Serial.println(errorMsg);
     addErrorMessage(errorMsg, SENSOR_ERROR_INITIALIZATION, 2);
   } else {
