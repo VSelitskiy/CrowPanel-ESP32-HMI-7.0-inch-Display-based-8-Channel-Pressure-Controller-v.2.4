@@ -19,7 +19,6 @@
 
 #include <time.h>
 #include <esp_sntp.h>
-#include <esp_heap_caps.h>
 #include <map>
 
 #include "main.h"
@@ -920,40 +919,68 @@ void OTAWebServer()
   
   // OTA Update Handler
   server.on("/update", HTTP_POST, [](AsyncWebServerRequest *request) {
-    // Empty handler; everything is managed in the upload handler
+    // Empty handler; response is sent from the upload handler after Update.end(true).
   }, [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-    if (!index) {
+    static bool updateInputError = false;
+    static size_t updateTotal = 0;
+
+    if (index == 0) {
+      updateInputError = false;
+      updateTotal = 0;
+
       Serial.printf("Update Start: %s\n", filename.c_str());
-      if (request->arg("fileType") == "firmware") {
+      Serial.printf("Free sketch space: %u bytes\n", ESP.getFreeSketchSpace());
+
+      String fileType = request->arg("fileType");
+
+      if (fileType == "firmware") {
+        Serial.println("Update type: firmware");
         if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) {
+          Serial.println("Update.begin firmware FAILED");
           Update.printError(Serial);
         }
-      } else if (request->arg("fileType") == "filesystem") {
+      } else if (fileType == "filesystem") {
+        Serial.println("Update type: filesystem");
         if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_SPIFFS)) {
+          Serial.println("Update.begin filesystem FAILED");
           Update.printError(Serial);
         }
+      } else {
+        updateInputError = true;
+        Serial.printf("Unknown update fileType: %s\n", fileType.c_str());
       }
     }
 
-    if (!Update.hasError()) {
-      if (Update.write(data, len) != len) {
+    if (!updateInputError && !Update.hasError()) {
+      size_t written = Update.write(data, len);
+      updateTotal += written;
+
+      if (written != len) {
+        Serial.printf("Update.write FAILED: written=%u expected=%u\n", written, len);
         Update.printError(Serial);
       }
     }
 
     if (final) {
-      if (!Update.hasError()) {
+      Serial.printf("Update upload finished. Total written: %u bytes. Expected final size: %u bytes\n", updateTotal, index + len);
+
+      if (!updateInputError && !Update.hasError() && Update.end(true)) {
+        Serial.println("Update.end OK");
+
         AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "Update Success. The device will restart shortly.");
         response->addHeader("Connection", "close");
         request->send(response);
 
-        // Set the onDisconnect handler
+        // Reboot after the HTTP connection is closed, but only after successful Update.end(true).
         request->onDisconnect([]() {
-          // Set the flag to finalize the update
           shouldFinalizeUpdate = true;
         });
       } else {
-        Update.printError(Serial);
+        Serial.println("Update.end FAILED");
+        if (!updateInputError) {
+          Update.printError(Serial);
+        }
+
         AsyncWebServerResponse *response = request->beginResponse(500, "text/plain", "Update Failed");
         response->addHeader("Connection", "close");
         request->send(response);
@@ -961,6 +988,7 @@ void OTAWebServer()
     }
   });
 }
+
 
 
 // Common web manager setup function
@@ -1524,28 +1552,15 @@ void loop()
   ws.cleanupClients();
   ws1.cleanupClients();
   
-  // Handle the OTA update
+  // Restart after successful OTA update.
+  // Update.end(true) is already called in OTAWebServer().
   if (shouldFinalizeUpdate) {
-    shouldFinalizeUpdate = false; // Reset the flag
+    shouldFinalizeUpdate = false;
 
-    // Clean up tanks array before restart
-    for (uint8_t i = 0; i < NUMBER_OF_TANKS; i++) {
-        delete tankOutputs[i];
-        tankOutputs[i] = nullptr;
-        delete tanks[i];
-        tanks[i] = nullptr;
-    }
-
-    // Finalize the update and restart
-    if (Update.end(true)) {
-      Serial.println("Update Success");
-      ESP.restart();
-    } else {
-      Update.printError(Serial);
-      Serial.println("Update failed.");
-    }
+    Serial.println("OTA update completed. Restarting...");
+    delay(1000);
+    ESP.restart();
   }
-
   pressureController();
 
   if ((millis() - lastActivityTime) >= INACTIVITY_PERIOD && backlightOn) {
@@ -1611,5 +1626,5 @@ void loop()
   }
   ui_tick();
   lv_timer_handler(); /* let the GUI do its work */
-  delay(10);
+  delay(1);
 }
