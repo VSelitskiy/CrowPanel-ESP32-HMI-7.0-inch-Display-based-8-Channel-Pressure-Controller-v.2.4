@@ -52,7 +52,7 @@ std::map<int, unsigned long> lastErrorLogTime; // Map to store the last log time
 
 // Constants
 
-const char* FIRMWARE_VERSION = "2.1.3"; // v.1.2.1 + OTA + LWT + Extended JSON on MQTT + Temperature display - Define firmware version 
+const char* FIRMWARE_VERSION = "2.1.3"; // v.2.1.2 + corrected OTA + mqtt reatart command 
 
 // const char* PRESET_PIN = "0808";
 const uint16_t INTERVAL = 60000; // INTERVAL to wait for Wi-Fi connection (milliseconds)
@@ -1163,20 +1163,26 @@ void onMqttMessage(char *topic, char *payload, int retain, int qos, bool dup)
     JsonObject obj = doc.as<JsonObject>();
 
     // Handle restart command
-    if (obj.containsKey("restart")) 
+    JsonVariant restartValue = obj["restart"];
+    if (!restartValue.isNull()) 
     {
       bool restartRequested = false;
-      if (obj["restart"].is<int>()) 
+      if (restartValue.is<int>()) 
       {
-        restartRequested = (obj["restart"].as<int>() == 1);
+        restartRequested = (restartValue.as<int>() == 1);
       } 
-      else if (obj["restart"].is<const char*>()) 
+      else if (restartValue.is<const char*>()) 
       {
-        String restartValue = obj["restart"].as<String>();
-        restartValue.toUpperCase();
-        restartRequested = (restartValue == "1" || restartValue == "ON" || restartValue == "TRUE");
+        String value = restartValue.as<String>();
+        value.toUpperCase();
+        restartRequested = (value == "1" || value == "ON" || value == "TRUE");
       }
-      if (restartRequested) {
+      else if (restartValue.is<bool>())
+      {
+        restartRequested = restartValue.as<bool>();
+      }
+      if (restartRequested) 
+      {
         Serial.println("MQTT restart command received.");
         mqttClient.publish(mqtt_topic_lwt, 1, true, "Restarting");
         delay(500);
