@@ -486,11 +486,11 @@ static void event_handler_cb_error_screen_es_btn_reboot_ok(lv_event_t *e) {
     lv_event_code_t event = lv_event_get_code(e);
     void *flowState = lv_event_get_user_data(e);
     
-    if (event == LV_EVENT_CLICKED) {
+    if (event == LV_EVENT_RELEASED) {
         e->user_data = (void *)0;
         action_keyboard_click_sound(e);
     }
-    if (event == LV_EVENT_RELEASED) {
+    if (event == LV_EVENT_CLICKED) {
         e->user_data = (void *)0;
         action_wm_reboot_esp(e);
     }

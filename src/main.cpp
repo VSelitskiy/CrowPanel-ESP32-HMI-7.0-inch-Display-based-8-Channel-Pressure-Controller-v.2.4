@@ -15,7 +15,7 @@
 //#include <SD.h>
 #include <FTPServer.h>
 #include <Preferences.h>
-#include <Adafruit_GFX.h>
+//#include <Adafruit_GFX.h>
 
 #include <time.h>
 #include <esp_sntp.h>

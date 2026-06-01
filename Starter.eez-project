@@ -98,7 +98,7 @@
       "separateFolderForImagesAndFonts": false,
       "lvglInclude": "lvgl.h",
       "generateSourceCodeForEezFramework": true,
-      "compressFlowDefinition": true,
+      "compressFlowDefinition": false,
       "executionQueueSize": 480,
       "expressionEvaluatorStackSize": 4
     }
@@ -8890,14 +8890,14 @@
                   "eventHandlers": [
                     {
                       "objID": "6b282b94-c484-4a04-ab26-64c8d7bbd4ee",
-                      "eventName": "CLICKED",
+                      "eventName": "RELEASED",
                       "handlerType": "action",
                       "action": "keyboard_click_sound",
                       "userData": 0
                     },
                     {
                       "objID": "743d9409-019a-498f-d8f2-8a8284e17c3d",
-                      "eventName": "RELEASED",
+                      "eventName": "CLICKED",
                       "handlerType": "action",
                       "action": "wm_reboot_esp",
                       "userData": 0
@@ -9536,7 +9536,7 @@
           "left": 59,
           "top": 507,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "description": "Back to Main Screen",
@@ -9561,7 +9561,7 @@
           "left": 580,
           "top": 516,
           "width": 262,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -9581,7 +9581,7 @@
           "left": 580,
           "top": 591,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -9600,8 +9600,8 @@
           "type": "LVGLActionComponent",
           "left": 13,
           "top": -267,
-          "width": 287,
-          "height": 144,
+          "width": 286,
+          "height": 149,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -9661,7 +9661,7 @@
           "left": 324,
           "top": -267,
           "width": 274,
-          "height": 144,
+          "height": 149,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
