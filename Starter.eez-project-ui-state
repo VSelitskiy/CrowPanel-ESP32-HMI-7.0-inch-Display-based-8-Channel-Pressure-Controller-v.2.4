@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[Starter.eez-project]:/userPages/0",
+    "selectedUserPageObject": "[Starter.eez-project]:/userPages/1",
     "selectedUserWidgetObject": "[Starter.eez-project]:/userWidgets/0",
     "selectedGlobalVariableObject": "[Starter.eez-project]:/variables/globalVariables/17",
     "selectedBitmapObject": "[Starter.eez-project]:/bitmaps/10",
@@ -193,7 +193,8 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 71.13206858431492,
+              "weight": 76.8740548435307,
+              "selected": 2,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
@@ -223,10 +224,10 @@
                 {
                   "type": "tab",
                   "id": "#98106fd1-597d-45e9-941f-5cc37cb1e629",
-                  "name": "Main",
+                  "name": "Error Screen",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[Starter.eez-project]:/userPages/0",
+                    "objectPath": "[Starter.eez-project]:/userPages/1",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -237,8 +238,8 @@
             {
               "type": "row",
               "id": "#f6c330bc-30f0-4d07-8c1c-7cdf3dc4395a",
-              "weight": 34.96612528000059,
-              "width": 408,
+              "weight": 29.224139020784804,
+              "width": 341,
               "children": [
                 {
                   "type": "tabset",
@@ -1099,9 +1100,8 @@
             "2": {}
           },
           "10": {
-            "2": {
-              "$selected": true
-            }
+            "2": {},
+            "3": {}
           }
         }
       },
@@ -1110,7 +1110,7 @@
           "x": -357.2000732421875,
           "y": -241.60000610351562
         },
-        "scale": 0.75
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
