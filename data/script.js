@@ -1,71 +1,108 @@
-let TanksNumber;
-let gaugePressureFV = [];  // Initialize as empty array
-let gaugeHeadTempFV = [];  // Array for head temperature gauges
-let gaugeConeTempFV = [];  // Array for cone temperature gauges
-let lastPressureValues = [];  // Store last received pressure values
-let lastHeadTempValues = [];  // Store last head temperature values
-let lastConeTempValues = [];  // Store last cone temperature values
+const RECONNECT_DELAY_MS = 3000;
 
-// Variables for WebSockets
-var gateway = `ws://${window.location.hostname}/ws`;
-var websocket;
+let TanksNumber = 0;
+let gaugePressureFV = [];
+let gaugeHeadTempFV = [];
+let gaugeConeTempFV = [];
+let lastPressureValues = [];
+let lastHeadTempValues = [];
+let lastConeTempValues = [];
 
-// Get current sensor readings when the page loads  
-//window.addEventListener('load', getReadings);
+const gateway = `ws://${window.location.hostname}/ws`;
+let websocket = null;
+let reconnectTimer = null;
+
 window.addEventListener('load', onLoad);
 
-function onLoad(event) {
+function onLoad() {
   initWebSocket();
 }
-// WebSocket handling
 
 function initWebSocket() {
-  console.log('Trying to open a WebSocket connection...');
-  websocket = new WebSocket(gateway);
-  websocket.onopen    = onOpen;
-  websocket.onclose   = onClose;
-  websocket.onerror   = onError;
-  websocket.onmessage = (e) => processCommand(e);
-}
-
-function onOpen(event) {
-  console.log('Connection opened');
-}
-
-function onClose(event) {
-  console.log('Connection closed, reconnecting in 3s...');
-  setTimeout(initWebSocket, 3000); // <-- вот чего не хватало
-}
-
-function onError(event) {
-  console.log('WebSocket error, closing...');
-  websocket.close(); // onClose сам запустит реконнект
-}
-
-function processCommand(e) {
-  console.log("ws new readings", e.data);
-  const myObj = JSON.parse(e.data);
-  console.log(myObj);
-
-  // Store sensor values
-  lastPressureValues = myObj.pressure;
-  lastHeadTempValues = myObj.headTemp;
-  lastConeTempValues = myObj.coneTemp;
-
-  // Get number of tanks from Configuration object
-  const newTanksNumber = myObj.Configuration.tanksNumber;
-  
-  if (TanksNumber !== newTanksNumber) {
-    TanksNumber = newTanksNumber;
-    document.getElementById('controllerTitle').textContent = 'Pressure Controller';  // Simplified title
-    createTankCards(myObj.Configuration);  // Pass configuration
-    setTimeout(() => {
-        createGauges(myObj.Configuration);  // Pass configuration
-        updateGauges(lastPressureValues, lastHeadTempValues, lastConeTempValues);
-    }, 100);
-  } else {
-    updateGauges(lastPressureValues, lastHeadTempValues, lastConeTempValues);
+  if (websocket &&
+      (websocket.readyState === WebSocket.OPEN ||
+       websocket.readyState === WebSocket.CONNECTING)) {
+    return;
   }
+
+  setConnectionState(false, 'Connecting...');
+  websocket = new WebSocket(gateway);
+  websocket.onopen = onOpen;
+  websocket.onclose = onClose;
+  websocket.onerror = onError;
+  websocket.onmessage = processCommand;
+}
+
+function onOpen() {
+  clearTimeout(reconnectTimer);
+  reconnectTimer = null;
+  setConnectionState(true, 'Connected');
+}
+
+function onClose() {
+  setConnectionState(false, 'Disconnected');
+  clearTimeout(reconnectTimer);
+  reconnectTimer = setTimeout(initWebSocket, RECONNECT_DELAY_MS);
+}
+
+function onError() {
+  setConnectionState(false, 'Error');
+  if (websocket) {
+    websocket.close();
+  }
+}
+
+function processCommand(event) {
+  let payload;
+
+  try {
+    payload = JSON.parse(event.data);
+  } catch (error) {
+    console.error('Invalid WebSocket JSON:', error);
+    return;
+  }
+
+  if (payload.success !== undefined && !payload.Configuration) {
+    return;
+  }
+
+  const configuration = payload.Configuration;
+  const receivedTankCount = Number(configuration?.tanksNumber);
+
+  if (Number.isInteger(receivedTankCount) &&
+      receivedTankCount > 0 &&
+      receivedTankCount !== TanksNumber) {
+    TanksNumber = receivedTankCount;
+    createTankCards(configuration);
+    createGauges(configuration);
+  }
+
+  if (TanksNumber === 0) {
+    return;
+  }
+
+  if (Array.isArray(payload.pressure)) {
+    lastPressureValues = payload.pressure;
+  }
+  if (Array.isArray(payload.headTemp)) {
+    lastHeadTempValues = payload.headTemp;
+  }
+  if (Array.isArray(payload.coneTemp)) {
+    lastConeTempValues = payload.coneTemp;
+  }
+
+  updateGauges(lastPressureValues, lastHeadTempValues, lastConeTempValues);
+}
+
+function setConnectionState(connected, label) {
+  const state = document.getElementById('connectionState');
+  if (!state) {
+    return;
+  }
+
+  state.classList.toggle('connected', connected);
+  state.classList.toggle('disconnected', !connected);
+  state.lastElementChild.textContent = label;
 }
 
 // Separate function for updating gauge values
@@ -326,7 +363,7 @@ function createTankCards(config) {
 
 
 // Menu handling
-function toggleMenu() {
+function toggleMenu(event) {
   const dropdown = document.getElementById("myDropdown");
   dropdown.classList.toggle("show");
   

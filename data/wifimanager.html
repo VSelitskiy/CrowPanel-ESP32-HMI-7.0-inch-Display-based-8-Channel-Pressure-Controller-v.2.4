@@ -1,51 +1,58 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-  <title>ESP Wi-Fi Manager</title>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pressure Controller Web Manager</title>
   <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" type="text/css" href="style.css">
 </head>
-
-<body>
+<body class="webmanager-page">
   <div class="topnav">
-    <h1>ESP32 Pressure Controller</h1>
-    <h2>Wi-Fi Manager</h2>
+    <h1>Pressure Controller</h1>
+    <h2>Web Manager</h2>
   </div>
-  <div class="content">
-    <div class="card-grid">
-      <div class="card">
-        <form action="/" method="POST">
-          <p>
-            <label for="ssid">Wi-Fi Network</label>
-            <input type="text" id="ssid" name="ssid" value="nmks_2.4"><br>
-            <label for="pass">Wi-Fi Password</label>
-            <input type="password" id="pass" name="pass" value="+73433744295"><br>
-            <br>
-            <label for="mqtt_host">MQTT Host</label>
-            <input type="text" id="mqtt_host" name="mqtt_host"><br>
-            <label for="mqtt_port">MQTT Port</label>
-            <input type="number" id="mqtt_port" name="mqtt_port"><br>
-            <label for="mqtt_user">MQTT User</label>
-            <input type="text" id="mqtt_user" name="mqtt_user"><br>
-            <label for="mqtt_password">MQTT Password</label>
-            <input type="text" id="mqtt_password" name="mqtt_password"><br>
-            <label for="mqtt_topic">MQTT Topic</label>
-            <input type="text" id="mqtt_topic" name="mqtt_topic"><br>
-            <br>
-            <input type="submit" value="Submit">
-          </p>
-        </form>
-      </div>
-    </div>
-    <br>
-    <div class="card-noshadow">
-      <div class="left">
-        <a href="/"> <button class="button">Home</button></a>
-      </div>
-    </div>
-  </div>
-</body>
+  <main class="content webmanager-content">
+    <section class="card webmanager-card">
+      <form action="/webmanager" method="POST" class="webmanager-form">
+        <h3>Wi-Fi</h3>
+        <div class="webmanager-field">
+          <label for="ssid">Network</label>
+          <input type="text" id="ssid" name="ssid" autocomplete="username" required>
+        </div>
+        <div class="webmanager-field">
+          <label for="pass">Password</label>
+          <input type="password" id="pass" name="pass" autocomplete="current-password" required>
+        </div>
 
+        <h3>MQTT</h3>
+        <div class="webmanager-field">
+          <label for="mqtt_host">Host</label>
+          <input type="text" id="mqtt_host" name="mqtt_host">
+        </div>
+        <div class="webmanager-field">
+          <label for="mqtt_port">Port</label>
+          <input type="number" id="mqtt_port" name="mqtt_port">
+        </div>
+        <div class="webmanager-field">
+          <label for="mqtt_user">User</label>
+          <input type="text" id="mqtt_user" name="mqtt_user" autocomplete="username">
+        </div>
+        <div class="webmanager-field">
+          <label for="mqtt_password">Password</label>
+          <input type="password" id="mqtt_password" name="mqtt_password" autocomplete="current-password">
+        </div>
+        <div class="webmanager-field">
+          <label for="mqtt_topic">Topic</label>
+          <input type="text" id="mqtt_topic" name="mqtt_topic">
+        </div>
+
+        <div class="webmanager-actions">
+          <a href="/" class="button">Home</a>
+          <input type="submit" value="Save and Restart">
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
 </html>

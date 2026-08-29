@@ -52,17 +52,19 @@ std::map<int, unsigned long> lastErrorLogTime; // Map to store the last log time
 
 // Constants
 
-const char* FIRMWARE_VERSION = "2.1.4"; // Common reliability fixes ported from the Boia Temperature Controller work
+const char* FIRMWARE_VERSION = "2.3.0"; // Rolling ADC averaging, LVGL refresh and Web UI improvements
 
 // const char* PRESET_PIN = "0808";
 const uint16_t INTERVAL = 60000; // INTERVAL to wait for Wi-Fi connection (milliseconds)
 const uint16_t INDICATION_TIME = 2000; // control interval
 const uint32_t LOG_INTERVAL = 300000; // Log interval in milliseconds (1 hour as an example) 
 const uint32_t INACTIVITY_PERIOD = 120000; // 120 seconds of inactivity to switch of backlight
+const uint32_t SENSOR_READ_INTERVAL = 500; // Physical pressure sensor acquisition interval
 
 // Timer variables
 uint64_t previousMillis = 0;
 uint64_t indication_millis = 0;
+uint64_t sensorReadMillis = 0;
 uint32_t telePeriod = 30000;
 uint64_t tele_millis = 0;
 uint64_t lastActivityTime = 0;
@@ -79,6 +81,13 @@ float setPressure[NUMBER_OF_TANKS];
 float pressureDifferential[NUMBER_OF_TANKS];
 float pressure[NUMBER_OF_TANKS];
 uint8_t sensorError[NUMBER_OF_TANKS];
+
+static constexpr uint8_t ADC_AVERAGE_BITS = 2;
+static constexpr uint8_t ADC_AVERAGE_SAMPLES = 1U << ADC_AVERAGE_BITS;
+int16_t adcSamples[NUMBER_OF_TANKS][ADC_AVERAGE_SAMPLES] = {};
+int32_t adcSums[NUMBER_OF_TANKS] = {};
+uint8_t adcSampleIndex[NUMBER_OF_TANKS] = {};
+bool adcFilterInitialized[NUMBER_OF_TANKS] = {};
 
 // Search for parameter in Web-Manager HTTP POST request
 const char *PARAM_INPUT_1 = "ssid";
@@ -500,172 +509,174 @@ bool checkI2CDevice(uint8_t address) {
     return (error == 0); // Return true if no error
 }
 
-// Function for averaging 4 readings on a selected ADS1115 channel
-int16_t readAverageChannel(Adafruit_ADS1115 &adc, uint8_t channel, uint8_t samples = 4) {
-  int32_t sum = 0;
-  for (uint8_t i = 0; i < samples; i++) {
-    int16_t val = adc.readADC_SingleEnded(channel);
-    // readADC_SingleEnded already waits for conversion to complete inside
-    sum += val;
+// Update the 4-sample rolling average for one tank.
+int16_t updateAdcRollingAverage(uint8_t tankIndex, int16_t newSample) {
+  if (!adcFilterInitialized[tankIndex]) {
+    for (uint8_t i = 0; i < ADC_AVERAGE_SAMPLES; i++) {
+      adcSamples[tankIndex][i] = newSample;
+    }
+    adcSums[tankIndex] = static_cast<int32_t>(newSample) << ADC_AVERAGE_BITS;
+    adcSampleIndex[tankIndex] = 0;
+    adcFilterInitialized[tankIndex] = true;
+    return newSample;
   }
-  return sum >> 2; // divide by 4 using bit shift
+
+  const uint8_t index = adcSampleIndex[tankIndex];
+  adcSums[tankIndex] -= adcSamples[tankIndex][index];
+  adcSamples[tankIndex][index] = newSample;
+  adcSums[tankIndex] += newSample;
+  adcSampleIndex[tankIndex] = (index + 1) & (ADC_AVERAGE_SAMPLES - 1);
+
+  return static_cast<int16_t>(adcSums[tankIndex] >> ADC_AVERAGE_BITS);
 }
 
-// Get Sensor Readings and return JSON String
+void resetAdcRollingAverage(uint8_t tankIndex) {
+  adcFilterInitialized[tankIndex] = false;
+  adcSums[tankIndex] = 0;
+  adcSampleIndex[tankIndex] = 0;
+}
+
+void readPressureChannel(uint8_t tankIndex,
+                         Adafruit_ADS1115 &adcDevice,
+                         uint8_t adcAddress,
+                         uint8_t channel,
+                         bool deviceAvailable) {
+  if (tanks[tankIndex] == nullptr) {
+    return;
+  }
+
+  if (!deviceAvailable) {
+    String errorMsg = "ADS1115 at address 0x" + String(adcAddress, HEX) +
+                      " not responding (Channel " + String(channel) + ")";
+    Serial.print("Error: ");
+    Serial.println(errorMsg);
+    addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
+    tanks[tankIndex]->setSensorError(-1);
+    resetAdcRollingAverage(tankIndex);
+    return;
+  }
+
+  const int16_t newSample = adcDevice.readADC_SingleEnded(channel);
+
+  if (!adcDevice.conversionComplete()) {
+    String errorMsg = "Conversion error on ADS1115 at address 0x" +
+                      String(adcAddress, HEX) + " (Channel " + String(channel) + ")";
+    Serial.print("Error: ");
+    Serial.println(errorMsg);
+    addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
+    tanks[tankIndex]->setSensorError(1);
+    resetAdcRollingAverage(tankIndex);
+    return;
+  }
+
+  const int16_t filteredAdcValue = updateAdcRollingAverage(tankIndex, newSample);
+  tanks[tankIndex]->setADCValue(filteredAdcValue);
+
+  const float measuredVolts = adcDevice.computeVolts(filteredAdcValue);
+  tanks[tankIndex]->setVoltage(measuredVolts);
+  tanks[tankIndex]->setPressure(tanks[tankIndex]->calculatePressure(measuredVolts));
+
+  if (measuredVolts < tanks[tankIndex]->getVolts4() * 0.8f ||
+      measuredVolts > tanks[tankIndex]->getVolts20() * 1.2f) {
+    String errorMsg = "Sensor error: Voltage out of range on channel " + String(tankIndex);
+    Serial.print("Error: ");
+    Serial.println(errorMsg);
+    addErrorMessage(errorMsg, SENSOR_ERROR_OUT_OF_RANGE, 2);
+    tanks[tankIndex]->setSensorError(1);
+  } else {
+    tanks[tankIndex]->setSensorError(0);
+  }
+}
+
+void readPressureSensors() {
+  const bool ads0048Available = checkI2CDevice(0x48);
+  const bool ads0049Available = checkI2CDevice(0x49);
+
+  for (uint8_t tankIndex = 0; tankIndex < NUMBER_OF_TANKS; tankIndex++) {
+    if (tankIndex < 4) {
+      readPressureChannel(tankIndex, ads0048, 0x48, tankIndex, ads0048Available);
+    } else {
+      readPressureChannel(tankIndex, ads0049, 0x49, tankIndex - 4, ads0049Available);
+    }
+  }
+}
+
+// Get current sensor state and return it as JSON. Physical ADC reads are performed separately.
 String getSensorReadings() {
-  // Check I2C communication with ADS1115 devices
-  bool ads0048Available = checkI2CDevice(0x48);
-  bool ads0049Available = checkI2CDevice(0x49);
-  
   JsonDocument readings;
-  
-  // Add Configuration object with current settings
+
   JsonObject Configuration = readings["Configuration"].to<JsonObject>();
   Configuration["tanksNumber"] = NUMBER_OF_TANKS;
   Configuration["tempConfig"] = static_cast<int>(SystemConfig::tempConfig);
   Configuration["pressureConfig"] = static_cast<int>(SystemConfig::pressureConfig);
-  
-  // Existing arrays for sensor data
+
   JsonArray data = readings["pressure"].to<JsonArray>();
-  JsonArray _error = readings["sensorError"].to<JsonArray>();
+  JsonArray errors = readings["sensorError"].to<JsonArray>();
   JsonArray state = readings["state"].to<JsonArray>();
-  JsonArray headTemp = readings["headTemp"].to<JsonArray>(); 
-  JsonArray coneTemp = readings["coneTemp"].to<JsonArray>(); 
+  JsonArray headTemp = readings["headTemp"].to<JsonArray>();
+  JsonArray coneTemp = readings["coneTemp"].to<JsonArray>();
   JsonArray headRelay = readings["headRelay"].to<JsonArray>();
   JsonArray coneRelay = readings["coneRelay"].to<JsonArray>();
-  bool hasError = false;
 
-  for (uint8_t j = 0; j < NUMBER_OF_TANKS; j++) {
-      bool updatePressure = true;
-      float volts = 0;
+  for (uint8_t tankIndex = 0; tankIndex < NUMBER_OF_TANKS; tankIndex++) {
+    if (tanks[tankIndex] == nullptr) {
+      data.add(0);
+      errors.add(-1);
+      state.add(0);
+      headTemp.add(0);
+      coneTemp.add(0);
+      headRelay.add(0);
+      coneRelay.add(0);
+      continue;
+    }
 
-      if (j < 4) {
-          if (!ads0048Available) {
-              String errorMsg = "ADS1115 at address 0x48 not responding (Channel " + String(j) + ")";
-              Serial.print("Error: ");
-              Serial.println(errorMsg);
-              addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
-              tanks[j]->setSensorError(-1);
-              hasError = true;
-              updatePressure = false;
-          } else {
-              //int16_t adcValue = ads0048.readADC_SingleEnded(j);
-              int16_t adcValue = readAverageChannel(ads0048, j);
-
-              tanks[j]->setADCValue(adcValue);
-              
-              if (!ads0048.conversionComplete()) {
-                  String errorMsg = "Conversion error on ADS1115 at address 0x48 (Channel " + String(j) + ")";
-                  Serial.print("Error: ");
-                  Serial.println(errorMsg);
-                  addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
-                  tanks[j]->setSensorError(1);
-                  hasError = true;
-                  updatePressure = false;
-              } else {
-                  volts = ads0048.computeVolts(adcValue);
-                  tanks[j]->setVoltage(volts);
-                  tanks[j]->setSensorError(0);
-              }
-          }
-      } else {
-          if (!ads0049Available) {
-              String errorMsg = "ADS1115 at address 0x49 not responding (Channel " + String(j - 4) + ")";
-              Serial.print("Error: ");
-              Serial.println(errorMsg);
-              addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
-              tanks[j]->setSensorError(-1);
-              hasError = true;
-              updatePressure = false;
-          } else {
-              //int16_t adcValue = ads0049.readADC_SingleEnded(j - 4);
-              int16_t adcValue = readAverageChannel(ads0049, j - 4);
-              tanks[j]->setADCValue(adcValue);
-              
-              if (!ads0049.conversionComplete()) {
-                  String errorMsg = "Conversion error on ADS1115 at address 0x49 (Channel " + String(j - 4) + ")";
-                  Serial.print("Error: ");
-                  Serial.println(errorMsg);
-                  addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
-                  tanks[j]->setSensorError(1);
-                  hasError = true;
-                  updatePressure = false;
-              } else {
-                  volts = ads0049.computeVolts(adcValue);
-                  tanks[j]->setVoltage(volts);
-                  tanks[j]->setSensorError(0);
-              }
-          }
-      }
-
-      if (updatePressure) {
-          float newPressure = tanks[j]->calculatePressure(volts);
-          tanks[j]->setPressure(newPressure);
-          
-          // Check for out of range values
-          if (volts < tanks[j]->getVolts4() * 0.8 || volts > tanks[j]->getVolts20() * 1.2) {
-              String errorMsg = "Sensor error: Voltage out of range on channel " + String(j);
-              Serial.print("Error: ");
-              Serial.println(errorMsg);
-              addErrorMessage(errorMsg, SENSOR_ERROR_OUT_OF_RANGE, 2);
-              tanks[j]->setSensorError(1);
-              hasError = true;
-          }
-      }
-
-      data.add(tanks[j]->getPressure());
-      _error.add(tanks[j]->getSensorError());
-      state.add(tanks[j]->getRelayState() ? 1 : 0);
-      headTemp.add(tanks[j]->getHeadTemp()); 
-      coneTemp.add(tanks[j]->getConeTemp());
-      headRelay.add(tanks[j]->getHeadTempRelayState() ? 1 : 0);
-      coneRelay.add(tanks[j]->getConeTempRelayState() ? 1 : 0); 
+    data.add(tanks[tankIndex]->getPressure());
+    errors.add(tanks[tankIndex]->getSensorError());
+    state.add(tanks[tankIndex]->getRelayState() ? 1 : 0);
+    headTemp.add(tanks[tankIndex]->getHeadTemp());
+    coneTemp.add(tanks[tankIndex]->getConeTemp());
+    headRelay.add(tanks[tankIndex]->getHeadTempRelayState() ? 1 : 0);
+    coneRelay.add(tanks[tankIndex]->getConeTempRelayState() ? 1 : 0);
   }
 
-  // Nested object System in readings json object
   JsonObject System = readings["System"].to<JsonObject>();
   System["Time"] = get_var_ntp_time();
   System["upTime"] = getReadableTime();
-  System["upTimeSec"] = (int) millis()/1000;
+  System["upTimeSec"] = millis() / 1000UL;
   System["bootCounter"] = bootCounter;
   System["freeHeap"] = ESP.getFreeHeap();
 
   JsonObject Wifi = readings["Wifi"].to<JsonObject>();
   Wifi["SSID"] = WiFi.SSID();
-      
-  int16_t dBm = WiFi.RSSI();
+
+  const int16_t dBm = WiFi.RSSI();
   uint8_t quality;
-  if(dBm <= -100) {
-      quality = 0;
+  if (dBm <= -100) {
+    quality = 0;
   } else if (dBm >= -50) {
-      quality = 100;
+    quality = 100;
   } else {
-      quality = 2 * (dBm + 100);
+    quality = 2 * (dBm + 100);
   }
-  
+
   if (WiFi.status() != WL_CONNECTED) {
-      set_var_wifi_status(-1);
+    set_var_wifi_status(-1);
+  } else if (quality < 21) {
+    set_var_wifi_status(0);
+  } else if (quality < 41) {
+    set_var_wifi_status(1);
+  } else if (quality < 61) {
+    set_var_wifi_status(2);
+  } else if (quality < 81) {
+    set_var_wifi_status(3);
   } else {
-      if(quality < 21) {
-          set_var_wifi_status(0);
-      } else if (quality < 41) {
-          set_var_wifi_status(1);
-      } else if (quality < 61) {
-          set_var_wifi_status(2);
-      } else if (quality < 81) {
-          set_var_wifi_status(3);
-      } else {
-          set_var_wifi_status(4);
-      }
+    set_var_wifi_status(4);
   }
 
   Wifi["RSSI"] = dBm;
   Wifi["Signal"] = quality;
   Wifi["linkCount"] = linkCounter;
   Wifi["mqttCount"] = mqttCounter;
-
-  // Set or reset error status based on the presence of sensor errors.
-  set_var_error_status(hasError);
 
   String output;
   serializeJson(readings, output);
@@ -1534,7 +1545,7 @@ void setup()
     Serial.println(errorMsg);
     addErrorMessage(errorMsg, SENSOR_ERROR_INITIALIZATION, 2);
   } else {
-    getSensorReadings();
+    readPressureSensors();
   }
 
   // Update MQTT topics after loading config
@@ -1603,6 +1614,11 @@ void loop()
     Serial.println("OTA update completed. Restarting...");
     scheduleRestart(1000);
   }
+  if ((millis() - sensorReadMillis) >= SENSOR_READ_INTERVAL) {
+    sensorReadMillis = millis();
+    readPressureSensors();
+  }
+
   pressureController();
 
   if ((millis() - lastActivityTime) >= INACTIVITY_PERIOD && backlightOn) {
@@ -1613,8 +1629,6 @@ void loop()
   if ((millis() - indication_millis) >= (INDICATION_TIME))
   {
     indication_millis = millis();
-    String output = getSensorReadings();
-    
     set_var_up_time(("Up Time: " + getReadableTime()).c_str());
     String buffer;
     buffer = printLocalTime().substring(0,16);
@@ -1635,7 +1649,6 @@ void loop()
         tankNumber = (tankNumber < (NUMBER_OF_TANKS - 1)) ? (tankNumber + 1) : 0; 
     } 
     // Mutex is automatically unlocked here at the end of this block
-    // ws.textAll(output);
   }
   if ((millis() - tele_millis) >= telePeriod)
   {

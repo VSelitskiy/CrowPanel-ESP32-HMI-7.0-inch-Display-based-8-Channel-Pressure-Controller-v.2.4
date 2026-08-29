@@ -1,31 +1,30 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-  <title>ESP Pressure Controller</title>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ESP Pressure Controller</title>
   <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" type="text/css" href="style.css">
-  <script src="http://cdn.rawgit.com/Mikhus/canvas-gauges/gh-pages/download/2.1.7/all/gauge.min.js""></script>
-  <meta charset="UTF-8">
+  <script src="gauge.min.js"></script>
 </head>
-
 <body>
   <div class="topnav">
-    <div class="hamburger-menu" onclick="toggleMenu()">&#9776;</div>
+    <div class="hamburger-menu" onclick="toggleMenu(event)">&#9776;</div>
     <div id="myDropdown" class="dropdown">
-        <a href="/configuration.html">Configuration</a>
-        <a href="/ota.html">OTA Update</a>
-        <a href="/wifimanager.html">Web Manager</a>
+      <a href="/configuration.html">Configuration</a>
+      <a href="/ota.html">OTA Update</a>
+      <a href="/wifimanager.html">Web Manager</a>
     </div>
     <h1 id="controllerTitle">Pressure Controller</h1>
-  </div>
-  <div class="content">
-    <!-- Cards will be generated dynamically -->
-    <div class="card-grid">
+    <div id="connectionState" class="connection-state disconnected">
+      <span class="connection-dot"></span>
+      <span>Disconnected</span>
     </div>
   </div>
+  <main class="content">
+    <div class="card-grid"></div>
+  </main>
   <script src="script.js"></script>
 </body>
-
 </html>
