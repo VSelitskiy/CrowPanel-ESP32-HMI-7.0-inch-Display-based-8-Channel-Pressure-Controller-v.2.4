@@ -97,6 +97,7 @@
       "destinationFolder": "src\\ui",
       "separateFolderForImagesAndFonts": false,
       "lvglInclude": "lvgl.h",
+      "screensLifetimeSupport": true,
       "generateSourceCodeForEezFramework": true,
       "compressFlowDefinition": false,
       "executionQueueSize": 480,
@@ -7629,7 +7630,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -7654,7 +7657,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -7679,7 +7684,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -7704,7 +7711,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -7729,7 +7738,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -7754,7 +7765,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -7779,7 +7792,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -7804,7 +7819,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -8055,7 +8072,9 @@
       "left": 0,
       "top": 0,
       "width": 800,
-      "height": 480
+      "height": 480,
+      "createAtStart": true,
+      "deleteOnScreenUnload": false
     },
     {
       "objID": "3d6b2d36-bf0e-4cfc-ef2d-7c7dbaec5af4",
@@ -9551,7 +9570,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -9714,6 +9735,24 @@
               "hiddenType": "literal"
             }
           ]
+        },
+        {
+          "objID": "b90dc9d9-2b47-4889-97a3-3013b9ca77f3",
+          "type": "LVGLActionComponent",
+          "left": 59,
+          "top": 627,
+          "width": 176,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "53c3e17d-6dcc-4c06-e2c4-6971e173c7c8",
+              "action": "deleteScreen",
+              "screen": "Error Screen",
+              "screenType": "literal"
+            }
+          ]
         }
       ],
       "connectionLines": [
@@ -9751,6 +9790,13 @@
           "output": "PRESSED",
           "target": "7cd556bd-11bf-4ff6-cf11-7e775a3212ba",
           "input": "@seqin"
+        },
+        {
+          "objID": "d4d9a10f-aa0f-4c4b-9d82-1fedf74d0676",
+          "source": "2a47b78c-2c36-4851-b40c-ecc471e5f3b7",
+          "output": "@seqout",
+          "target": "b90dc9d9-2b47-4889-97a3-3013b9ca77f3",
+          "input": "@seqin"
         }
       ],
       "localVariables": [],
@@ -9760,7 +9806,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": false
+      "isUsedAsUserWidget": false,
+      "createAtStart": false,
+      "deleteOnScreenUnload": false
     },
     {
       "objID": "6fc3354d-7419-4544-d053-2614a441ed9f",
@@ -9800,8 +9848,8 @@
               "type": "LVGLLabelWidget",
               "left": 721,
               "top": 410,
-              "width": 38,
-              "height": 24,
+              "width": 28,
+              "height": 18,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -10890,7 +10938,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -11069,6 +11119,24 @@
               "hiddenType": "literal"
             }
           ]
+        },
+        {
+          "objID": "491b37ee-9207-4bef-a5ab-81bebe33b1a7",
+          "type": "LVGLActionComponent",
+          "left": 57,
+          "top": 622,
+          "width": 176,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "119608c3-4586-43c7-c4c2-54d5c5debadd",
+              "action": "deleteScreen",
+              "screen": "FV1_Settings",
+              "screenType": "literal"
+            }
+          ]
         }
       ],
       "connectionLines": [
@@ -11134,6 +11202,13 @@
           "output": "CLICKED",
           "target": "6781291d-e8e9-4278-8cb5-6ccdd0ab0ccb",
           "input": "@seqin"
+        },
+        {
+          "objID": "1cbb7a97-c158-481d-dd4d-1ee9f757b9e4",
+          "source": "809a5707-ee58-4d71-87b7-4e991533cdf8",
+          "output": "@seqout",
+          "target": "491b37ee-9207-4bef-a5ab-81bebe33b1a7",
+          "input": "@seqin"
         }
       ],
       "localVariables": [],
@@ -11143,7 +11218,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": false
+      "isUsedAsUserWidget": false,
+      "createAtStart": false,
+      "deleteOnScreenUnload": false
     },
     {
       "objID": "46c7272f-3007-4c81-f578-c2407ed2eb2c",
@@ -11183,8 +11260,8 @@
               "type": "LVGLLabelWidget",
               "left": 716,
               "top": 410,
-              "width": 43,
-              "height": 24,
+              "width": 30,
+              "height": 18,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -12258,7 +12335,7 @@
           "left": 59,
           "top": 507,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "description": "Back to Main Screen",
@@ -12273,7 +12350,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -12283,7 +12362,7 @@
           "left": -341,
           "top": 296,
           "width": 268,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -12303,7 +12382,7 @@
           "left": -338,
           "top": 549,
           "width": 299,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -12323,7 +12402,7 @@
           "left": -375,
           "top": 15,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -12351,7 +12430,7 @@
           "left": -341,
           "top": 370,
           "width": 274,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -12371,7 +12450,7 @@
           "left": -338,
           "top": 622,
           "width": 293,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -12391,7 +12470,7 @@
           "left": -375,
           "top": 146,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -12419,7 +12498,7 @@
           "left": 846,
           "top": 397,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -12439,7 +12518,7 @@
           "left": 843,
           "top": 333,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -12450,6 +12529,24 @@
               "objectType": "literal",
               "hidden": true,
               "hiddenType": "literal"
+            }
+          ]
+        },
+        {
+          "objID": "b6b67b1c-5fe1-4cd0-8c89-a4b68ebdd149",
+          "type": "LVGLActionComponent",
+          "left": 59,
+          "top": 622,
+          "width": 176,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "1639cc72-2e8c-4d8e-ed2b-a68502662f90",
+              "action": "deleteScreen",
+              "screen": "FV2_Settings",
+              "screenType": "literal"
             }
           ]
         }
@@ -12517,6 +12614,13 @@
           "output": "CLICKED",
           "target": "841c1f63-6eae-4bd7-ddbb-781e459699c2",
           "input": "@seqin"
+        },
+        {
+          "objID": "1a028abf-0835-4bfc-e2c8-d9dd04918eeb",
+          "source": "2c0b9d31-01dd-4b54-d63f-6a824ce9c27e",
+          "output": "@seqout",
+          "target": "b6b67b1c-5fe1-4cd0-8c89-a4b68ebdd149",
+          "input": "@seqin"
         }
       ],
       "localVariables": [],
@@ -12526,7 +12630,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": false
+      "isUsedAsUserWidget": false,
+      "createAtStart": false,
+      "deleteOnScreenUnload": false
     },
     {
       "objID": "c99f9bff-3a9e-40f1-acda-ab682a633779",
@@ -12566,8 +12672,8 @@
               "type": "LVGLLabelWidget",
               "left": 716,
               "top": 410,
-              "width": 43,
-              "height": 24,
+              "width": 30,
+              "height": 18,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -13641,7 +13747,7 @@
           "left": 59,
           "top": 507,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "description": "Back to Main Screen",
@@ -13656,7 +13762,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -13666,7 +13774,7 @@
           "left": -341,
           "top": 296,
           "width": 268,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -13686,7 +13794,7 @@
           "left": -338,
           "top": 549,
           "width": 299,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -13706,7 +13814,7 @@
           "left": -375,
           "top": 15,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -13734,7 +13842,7 @@
           "left": -341,
           "top": 370,
           "width": 274,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -13754,7 +13862,7 @@
           "left": -338,
           "top": 622,
           "width": 293,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -13774,7 +13882,7 @@
           "left": -375,
           "top": 146,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -13802,7 +13910,7 @@
           "left": 846,
           "top": 397,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -13822,7 +13930,7 @@
           "left": 846,
           "top": 336,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -13833,6 +13941,24 @@
               "objectType": "literal",
               "hidden": true,
               "hiddenType": "literal"
+            }
+          ]
+        },
+        {
+          "objID": "0bf96037-e311-4c6d-d208-07048cf09932",
+          "type": "LVGLActionComponent",
+          "left": 59,
+          "top": 637,
+          "width": 176,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "ad66d43d-adcb-412a-8b73-c62be26d9cc1",
+              "action": "deleteScreen",
+              "screen": "FV3_Settings",
+              "screenType": "literal"
             }
           ]
         }
@@ -13900,6 +14026,13 @@
           "output": "CLICKED",
           "target": "adf2e041-6264-4090-ef42-667610e2b64e",
           "input": "@seqin"
+        },
+        {
+          "objID": "54219927-b14a-44f5-dbe4-d4075c777131",
+          "source": "679d318c-1975-43a6-b40b-2d4844d2b35f",
+          "output": "@seqout",
+          "target": "0bf96037-e311-4c6d-d208-07048cf09932",
+          "input": "@seqin"
         }
       ],
       "localVariables": [],
@@ -13909,7 +14042,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": false
+      "isUsedAsUserWidget": false,
+      "createAtStart": false,
+      "deleteOnScreenUnload": false
     },
     {
       "objID": "9eb59449-40db-4aed-c35d-de9cda891955",
@@ -13949,8 +14084,8 @@
               "type": "LVGLLabelWidget",
               "left": 716,
               "top": 410,
-              "width": 43,
-              "height": 24,
+              "width": 31,
+              "height": 18,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -15026,7 +15161,7 @@
           "left": 59,
           "top": 507,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "description": "Back to Main Screen",
@@ -15041,7 +15176,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -15051,7 +15188,7 @@
           "left": -341,
           "top": 296,
           "width": 268,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -15071,7 +15208,7 @@
           "left": -338,
           "top": 549,
           "width": 299,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -15091,7 +15228,7 @@
           "left": -375,
           "top": 15,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -15119,7 +15256,7 @@
           "left": -341,
           "top": 370,
           "width": 274,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -15139,7 +15276,7 @@
           "left": -338,
           "top": 622,
           "width": 293,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -15159,7 +15296,7 @@
           "left": -375,
           "top": 146,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -15187,7 +15324,7 @@
           "left": 846,
           "top": 397,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -15207,7 +15344,7 @@
           "left": 846,
           "top": 336,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -15218,6 +15355,24 @@
               "objectType": "literal",
               "hidden": true,
               "hiddenType": "literal"
+            }
+          ]
+        },
+        {
+          "objID": "c3833062-d86a-4b43-92ba-71a86913dd9a",
+          "type": "LVGLActionComponent",
+          "left": 59,
+          "top": 649,
+          "width": 176,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "593125c9-c82f-4793-a8e5-bbe334dda35f",
+              "action": "deleteScreen",
+              "screen": "FV4_Settings",
+              "screenType": "literal"
             }
           ]
         }
@@ -15285,6 +15440,13 @@
           "output": "CLICKED",
           "target": "f3730ac2-d6e3-48ec-c8f7-8ae996f3d4fa",
           "input": "@seqin"
+        },
+        {
+          "objID": "63def5b4-8aac-47a1-dede-e47becf73826",
+          "source": "991201f1-75cd-4efd-c6da-318098d770a1",
+          "output": "@seqout",
+          "target": "c3833062-d86a-4b43-92ba-71a86913dd9a",
+          "input": "@seqin"
         }
       ],
       "localVariables": [],
@@ -15294,7 +15456,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": false
+      "isUsedAsUserWidget": false,
+      "createAtStart": false,
+      "deleteOnScreenUnload": false
     },
     {
       "objID": "d351149a-234a-478e-be2e-955d2c3cde8b",
@@ -15334,8 +15498,8 @@
               "type": "LVGLLabelWidget",
               "left": 716,
               "top": 410,
-              "width": 43,
-              "height": 24,
+              "width": 30,
+              "height": 18,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -16424,7 +16588,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -16603,6 +16769,24 @@
               "hiddenType": "literal"
             }
           ]
+        },
+        {
+          "objID": "e578e660-7b1b-44b7-991e-8d506b42e6ec",
+          "type": "LVGLActionComponent",
+          "left": 59,
+          "top": 635,
+          "width": 176,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "40adcf7c-bc9d-47e5-97a4-ad65dcf3928c",
+              "action": "deleteScreen",
+              "screen": "FV5_Settings",
+              "screenType": "literal"
+            }
+          ]
         }
       ],
       "connectionLines": [
@@ -16668,6 +16852,13 @@
           "output": "CLICKED",
           "target": "ee69cfa8-4cee-4d63-bc9c-6dae704e55ad",
           "input": "@seqin"
+        },
+        {
+          "objID": "706d7d0b-28e1-4054-a757-79050b206b36",
+          "source": "046eeda8-5fa4-425f-813a-1a1749fbf2f2",
+          "output": "@seqout",
+          "target": "e578e660-7b1b-44b7-991e-8d506b42e6ec",
+          "input": "@seqin"
         }
       ],
       "localVariables": [],
@@ -16677,7 +16868,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": false
+      "isUsedAsUserWidget": false,
+      "createAtStart": false,
+      "deleteOnScreenUnload": false
     },
     {
       "objID": "330e41bf-83f3-4817-9417-069e79d15f30",
@@ -16717,8 +16910,8 @@
               "type": "LVGLLabelWidget",
               "left": 716,
               "top": 410,
-              "width": 43,
-              "height": 24,
+              "width": 31,
+              "height": 18,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -17792,7 +17985,7 @@
           "left": 59,
           "top": 507,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "description": "Back to Main Screen",
@@ -17807,7 +18000,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -17817,7 +18012,7 @@
           "left": -341,
           "top": 296,
           "width": 268,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -17837,7 +18032,7 @@
           "left": -338,
           "top": 549,
           "width": 299,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -17857,7 +18052,7 @@
           "left": -375,
           "top": 15,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -17885,7 +18080,7 @@
           "left": -341,
           "top": 370,
           "width": 274,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -17905,7 +18100,7 @@
           "left": -338,
           "top": 622,
           "width": 293,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -17925,7 +18120,7 @@
           "left": -375,
           "top": 146,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -17953,7 +18148,7 @@
           "left": 846,
           "top": 397,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -17973,7 +18168,7 @@
           "left": 846,
           "top": 336,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -17984,6 +18179,24 @@
               "objectType": "literal",
               "hidden": true,
               "hiddenType": "literal"
+            }
+          ]
+        },
+        {
+          "objID": "8165825d-f650-41ad-b610-a3371d0384d5",
+          "type": "LVGLActionComponent",
+          "left": 59,
+          "top": 622,
+          "width": 176,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "cff6edf6-9627-4f97-de2b-f7181459d5a6",
+              "action": "deleteScreen",
+              "screen": "FV6_Settings",
+              "screenType": "literal"
             }
           ]
         }
@@ -18051,6 +18264,13 @@
           "output": "CLICKED",
           "target": "b8b9e7c4-80c0-4245-8dd0-fb629d3ac028",
           "input": "@seqin"
+        },
+        {
+          "objID": "9f428f5f-c1c4-4c7e-bd05-4403cd979080",
+          "source": "ac9fffbd-39fc-405b-b940-6a22a4465394",
+          "output": "@seqout",
+          "target": "8165825d-f650-41ad-b610-a3371d0384d5",
+          "input": "@seqin"
         }
       ],
       "localVariables": [],
@@ -18060,7 +18280,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": false
+      "isUsedAsUserWidget": false,
+      "createAtStart": false,
+      "deleteOnScreenUnload": false
     },
     {
       "objID": "d26071c5-c095-4836-8d9a-67bf632d23b1",
@@ -18100,8 +18322,8 @@
               "type": "LVGLLabelWidget",
               "left": 716,
               "top": 410,
-              "width": 43,
-              "height": 24,
+              "width": 32,
+              "height": 18,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -19175,7 +19397,7 @@
           "left": 53,
           "top": 549,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "description": "Back to Main Screen",
@@ -19190,7 +19412,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -19200,7 +19424,7 @@
           "left": -341,
           "top": 296,
           "width": 268,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -19220,7 +19444,7 @@
           "left": -338,
           "top": 549,
           "width": 299,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -19240,7 +19464,7 @@
           "left": -375,
           "top": 15,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -19268,7 +19492,7 @@
           "left": -341,
           "top": 370,
           "width": 274,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -19288,7 +19512,7 @@
           "left": -338,
           "top": 622,
           "width": 293,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -19308,7 +19532,7 @@
           "left": -375,
           "top": 146,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -19336,7 +19560,7 @@
           "left": 846,
           "top": 397,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -19356,7 +19580,7 @@
           "left": 846,
           "top": 336,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -19367,6 +19591,24 @@
               "objectType": "literal",
               "hidden": true,
               "hiddenType": "literal"
+            }
+          ]
+        },
+        {
+          "objID": "73736437-0d82-45ee-a950-9cbe29243a1c",
+          "type": "LVGLActionComponent",
+          "left": 57,
+          "top": 676,
+          "width": 176,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "4d5cfa87-fdb9-4b1e-c1c2-8ed621a59366",
+              "action": "deleteScreen",
+              "screen": "FV7_Settings",
+              "screenType": "literal"
             }
           ]
         }
@@ -19434,6 +19676,13 @@
           "output": "CHECKED",
           "target": "e2863b4f-563d-493d-bd89-fa548b59fe16",
           "input": "@seqin"
+        },
+        {
+          "objID": "85430434-5edc-4ae1-81bc-dcd12a8e4514",
+          "source": "b9620a92-3e3d-4de2-c203-d8b56d95b85d",
+          "output": "@seqout",
+          "target": "73736437-0d82-45ee-a950-9cbe29243a1c",
+          "input": "@seqin"
         }
       ],
       "localVariables": [],
@@ -19443,7 +19692,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": false
+      "isUsedAsUserWidget": false,
+      "createAtStart": false,
+      "deleteOnScreenUnload": false
     },
     {
       "objID": "99c9818e-dea8-47e9-e255-d3fe2cbe1332",
@@ -19483,8 +19734,8 @@
               "type": "LVGLLabelWidget",
               "left": 716,
               "top": 410,
-              "width": 43,
-              "height": 24,
+              "width": 31,
+              "height": 18,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -20558,7 +20809,7 @@
           "left": 59,
           "top": 507,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "description": "Back to Main Screen",
@@ -20573,7 +20824,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -20583,7 +20836,7 @@
           "left": -341,
           "top": 296,
           "width": 268,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -20603,7 +20856,7 @@
           "left": -338,
           "top": 549,
           "width": 299,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -20623,7 +20876,7 @@
           "left": -375,
           "top": 15,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -20651,7 +20904,7 @@
           "left": -341,
           "top": 370,
           "width": 274,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -20671,7 +20924,7 @@
           "left": -338,
           "top": 622,
           "width": 293,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -20691,7 +20944,7 @@
           "left": -375,
           "top": 146,
           "width": 336,
-          "height": 72,
+          "height": 73,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -20719,7 +20972,7 @@
           "left": 846,
           "top": 397,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -20739,7 +20992,7 @@
           "left": 846,
           "top": 336,
           "width": 219,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -20750,6 +21003,24 @@
               "objectType": "literal",
               "hidden": true,
               "hiddenType": "literal"
+            }
+          ]
+        },
+        {
+          "objID": "a58523c8-095f-45f2-883f-9ab94e574fa0",
+          "type": "LVGLActionComponent",
+          "left": 59,
+          "top": 649,
+          "width": 176,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "761295e5-4ecc-4b20-d500-6d9a0250c7d9",
+              "action": "deleteScreen",
+              "screen": "FV8_Settings",
+              "screenType": "literal"
             }
           ]
         }
@@ -20817,6 +21088,13 @@
           "output": "READY",
           "target": "19c33f27-e6cd-4884-bbee-d7ad2ac90519",
           "input": "@seqin"
+        },
+        {
+          "objID": "4023f3f7-2d66-4ffb-dd3d-83bfc881a67c",
+          "source": "61b767d4-16df-42c2-df7f-256206de91c5",
+          "output": "@seqout",
+          "target": "a58523c8-095f-45f2-883f-9ab94e574fa0",
+          "input": "@seqin"
         }
       ],
       "localVariables": [],
@@ -20826,7 +21104,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": false
+      "isUsedAsUserWidget": false,
+      "createAtStart": false,
+      "deleteOnScreenUnload": false
     },
     {
       "objID": "d8d4ee8f-1ce5-47f7-dc13-e0d831fc98aa",
@@ -22733,7 +23013,7 @@
           "left": 59,
           "top": 507,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "description": "Back to Main Screen",
@@ -22748,7 +23028,9 @@
               "speed": 0,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -22758,7 +23040,7 @@
           "left": -293,
           "top": 2,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -22778,7 +23060,7 @@
           "left": -293,
           "top": 83,
           "width": 256,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -22797,8 +23079,8 @@
           "type": "LVGLActionComponent",
           "left": -293,
           "top": 158,
-          "width": 287,
-          "height": 53,
+          "width": 286,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -22818,7 +23100,7 @@
           "left": 894,
           "top": 240,
           "width": 293,
-          "height": 53,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -22837,8 +23119,8 @@
           "type": "LVGLActionComponent",
           "left": 894,
           "top": 181,
-          "width": 287,
-          "height": 53,
+          "width": 286,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -22857,8 +23139,8 @@
           "type": "LVGLActionComponent",
           "left": 894,
           "top": 120,
-          "width": 287,
-          "height": 53,
+          "width": 286,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -22877,8 +23159,8 @@
           "type": "LVGLActionComponent",
           "left": 894,
           "top": 56,
-          "width": 287,
-          "height": 53,
+          "width": 286,
+          "height": 54,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -22898,7 +23180,7 @@
           "left": 0,
           "top": -224,
           "width": 268,
-          "height": 199,
+          "height": 206,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -22982,7 +23264,7 @@
           "left": 377,
           "top": -224,
           "width": 256,
-          "height": 199,
+          "height": 206,
           "customInputs": [],
           "customOutputs": [],
           "actions": [
@@ -23059,6 +23341,24 @@
               "hiddenType": "literal"
             }
           ]
+        },
+        {
+          "objID": "93de1246-47eb-494d-95be-2849ed3b4508",
+          "type": "LVGLActionComponent",
+          "left": 59,
+          "top": 649,
+          "width": 164,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "59cd980a-7cc4-4e46-ab6b-36fa225ad99f",
+              "action": "deleteScreen",
+              "screen": "Web Manger",
+              "screenType": "literal"
+            }
+          ]
         }
       ],
       "connectionLines": [
@@ -23131,6 +23431,13 @@
           "output": "PRESSED",
           "target": "423f2240-ab5c-4f57-ca8f-e1e8f360b26c",
           "input": "@seqin"
+        },
+        {
+          "objID": "771877a5-ac81-4ad3-b168-3e10f254fbed",
+          "source": "851504c2-32fe-4dd7-e181-7707466e6805",
+          "output": "@seqout",
+          "target": "93de1246-47eb-494d-95be-2849ed3b4508",
+          "input": "@seqin"
         }
       ],
       "localVariables": [],
@@ -23140,7 +23447,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": false
+      "isUsedAsUserWidget": false,
+      "createAtStart": false,
+      "deleteOnScreenUnload": false
     }
   ],
   "userWidgets": [
@@ -23407,7 +23716,9 @@
               "speed": 200,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -23544,7 +23855,9 @@
               "speed": 200,
               "speedType": "literal",
               "delay": 0,
-              "delayType": "literal"
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
             }
           ]
         },
@@ -23760,7 +24073,9 @@
       "top": 0,
       "width": 800,
       "height": 480,
-      "isUsedAsUserWidget": true
+      "isUsedAsUserWidget": true,
+      "createAtStart": true,
+      "deleteOnScreenUnload": false
     }
   ],
   "lvglStyles": {

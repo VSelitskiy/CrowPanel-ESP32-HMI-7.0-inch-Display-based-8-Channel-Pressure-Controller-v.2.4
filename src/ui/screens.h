@@ -358,43 +358,58 @@ enum ScreensEnum {
 };
 
 void create_screen_main();
+void delete_screen_main();
 void tick_screen_main();
 
 void create_screen_error_screen();
+void delete_screen_error_screen();
 void tick_screen_error_screen();
 
 void create_screen_fv1_settings();
+void delete_screen_fv1_settings();
 void tick_screen_fv1_settings();
 
 void create_screen_fv2_settings();
+void delete_screen_fv2_settings();
 void tick_screen_fv2_settings();
 
 void create_screen_fv3_settings();
+void delete_screen_fv3_settings();
 void tick_screen_fv3_settings();
 
 void create_screen_fv4_settings();
+void delete_screen_fv4_settings();
 void tick_screen_fv4_settings();
 
 void create_screen_fv5_settings();
+void delete_screen_fv5_settings();
 void tick_screen_fv5_settings();
 
 void create_screen_fv6_settings();
+void delete_screen_fv6_settings();
 void tick_screen_fv6_settings();
 
 void create_screen_fv7_settings();
+void delete_screen_fv7_settings();
 void tick_screen_fv7_settings();
 
 void create_screen_fv8_settings();
+void delete_screen_fv8_settings();
 void tick_screen_fv8_settings();
 
 void create_screen_web_manger();
+void delete_screen_web_manger();
 void tick_screen_web_manger();
 
 void create_user_widget_icons_set(lv_obj_t *parent_obj, void *flowState, int startWidgetIndex);
 void tick_user_widget_icons_set(void *flowState, int startWidgetIndex);
 
-void create_screens();
+void create_screen_by_id(enum ScreensEnum screenId);
+void delete_screen_by_id(enum ScreensEnum screenId);
+void tick_screen_by_id(enum ScreensEnum screenId);
 void tick_screen(int screen_index);
+
+void create_screens();
 
 
 #ifdef __cplusplus

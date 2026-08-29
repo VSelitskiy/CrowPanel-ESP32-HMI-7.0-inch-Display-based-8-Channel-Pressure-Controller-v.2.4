@@ -3462,6 +3462,168 @@ void create_screen_main() {
             }
         }
     }
+    
+    tick_screen_main();
+}
+
+void delete_screen_main() {
+    lv_obj_del(objects.main);
+    objects.main = 0;
+    objects.obj3 = 0;
+    objects.ntp_time_label = 0;
+    objects.up_time_label = 0;
+    objects.obj4 = 0;
+    objects.obj0 = 0;
+    objects.obj5 = 0;
+    objects.fv1_meter = 0;
+    objects.fv1_pressure = 0;
+    objects.obj6 = 0;
+    objects.fv1_head_temp = 0;
+    objects.obj7 = 0;
+    objects.fv1_led_head = 0;
+    objects.obj8 = 0;
+    objects.fv1_cone_temp = 0;
+    objects.obj9 = 0;
+    objects.fv1_led_cone = 0;
+    objects.obj10 = 0;
+    objects.fv2_meter = 0;
+    objects.fv2_pressure = 0;
+    objects.obj11 = 0;
+    objects.obj12 = 0;
+    objects.fv2_head_temp = 0;
+    objects.obj13 = 0;
+    objects.fv2_led_head = 0;
+    objects.obj14 = 0;
+    objects.fv2_cone_temp = 0;
+    objects.obj15 = 0;
+    objects.fv2_led_cone = 0;
+    objects.obj16 = 0;
+    objects.fv3_meter = 0;
+    objects.fv3_pressure = 0;
+    objects.obj17 = 0;
+    objects.obj18 = 0;
+    objects.fv3_head_temp = 0;
+    objects.obj19 = 0;
+    objects.fv3_led_head = 0;
+    objects.obj20 = 0;
+    objects.fv3_cone_temp = 0;
+    objects.obj21 = 0;
+    objects.fv3_led_cone = 0;
+    objects.obj22 = 0;
+    objects.fv4_meter = 0;
+    objects.obj23 = 0;
+    objects.fv4_pressure = 0;
+    objects.obj24 = 0;
+    objects.obj25 = 0;
+    objects.fv4_head_temp = 0;
+    objects.obj26 = 0;
+    objects.fv4_led_head = 0;
+    objects.obj27 = 0;
+    objects.fv4_cone_temp = 0;
+    objects.obj28 = 0;
+    objects.fv4_led_cone = 0;
+    objects.obj29 = 0;
+    objects.fv5_meter = 0;
+    objects.obj30 = 0;
+    objects.fv5_pressure = 0;
+    objects.obj31 = 0;
+    objects.obj32 = 0;
+    objects.fv5_head_temp = 0;
+    objects.obj33 = 0;
+    objects.fv5_led_head = 0;
+    objects.obj34 = 0;
+    objects.fv5_cone_temp = 0;
+    objects.obj35 = 0;
+    objects.fv5_led_cone = 0;
+    objects.obj36 = 0;
+    objects.fv6_meter = 0;
+    objects.obj37 = 0;
+    objects.fv6_pressure = 0;
+    objects.obj38 = 0;
+    objects.obj39 = 0;
+    objects.fv6_head_temp = 0;
+    objects.obj40 = 0;
+    objects.fv6_led_head = 0;
+    objects.obj41 = 0;
+    objects.fv6_cone_temp = 0;
+    objects.obj42 = 0;
+    objects.fv6_led_cone = 0;
+    objects.obj43 = 0;
+    objects.fv7_meter = 0;
+    objects.obj44 = 0;
+    objects.fv7_pressure = 0;
+    objects.obj45 = 0;
+    objects.obj46 = 0;
+    objects.fv7_head_temp = 0;
+    objects.obj47 = 0;
+    objects.fv7_led_head = 0;
+    objects.obj48 = 0;
+    objects.fv7_cone_temp = 0;
+    objects.obj49 = 0;
+    objects.fv7_led_cone = 0;
+    objects.obj50 = 0;
+    objects.fv8_meter = 0;
+    objects.obj51 = 0;
+    objects.fv8_pressure = 0;
+    objects.obj52 = 0;
+    objects.obj53 = 0;
+    objects.fv8_head_temp = 0;
+    objects.obj54 = 0;
+    objects.fv8_led_head = 0;
+    objects.obj55 = 0;
+    objects.fv8_cone_temp = 0;
+    objects.obj56 = 0;
+    objects.fv8_led_cone = 0;
+    objects.obj57 = 0;
+    objects.main_ip_canvas = 0;
+    objects.obj58 = 0;
+    objects.obj59 = 0;
+    objects.obj60 = 0;
+    objects.mn_btn_close = 0;
+    objects.obj61 = 0;
+    objects.wm_btn_2 = 0;
+    objects.obj62 = 0;
+    scale0 = 0;
+    indicator1 = 0;
+    indicator2 = 0;
+    indicator3 = 0;
+    indicator4 = 0;
+    scale5 = 0;
+    indicator6 = 0;
+    indicator7 = 0;
+    indicator8 = 0;
+    indicator9 = 0;
+    scale10 = 0;
+    indicator11 = 0;
+    indicator12 = 0;
+    indicator13 = 0;
+    indicator14 = 0;
+    scale15 = 0;
+    indicator16 = 0;
+    indicator17 = 0;
+    indicator18 = 0;
+    indicator19 = 0;
+    scale20 = 0;
+    indicator21 = 0;
+    indicator22 = 0;
+    indicator23 = 0;
+    indicator24 = 0;
+    scale25 = 0;
+    indicator26 = 0;
+    indicator27 = 0;
+    indicator28 = 0;
+    indicator29 = 0;
+    scale30 = 0;
+    indicator31 = 0;
+    indicator32 = 0;
+    indicator33 = 0;
+    indicator34 = 0;
+    scale35 = 0;
+    indicator36 = 0;
+    indicator37 = 0;
+    indicator38 = 0;
+    indicator39 = 0;
+    deletePageFlowState(0);
 }
 
 void tick_screen_main() {
@@ -5011,6 +5173,40 @@ void create_screen_error_screen() {
             }
         }
     }
+    
+    tick_screen_error_screen();
+}
+
+void delete_screen_error_screen() {
+    lv_obj_del(objects.error_screen);
+    objects.error_screen = 0;
+    objects.obj63 = 0;
+    objects.obj64 = 0;
+    objects.obj1 = 0;
+    objects.es_btn_home = 0;
+    objects.home_9 = 0;
+    objects.es_error_list = 0;
+    objects.es_btn_clear = 0;
+    objects.home_11 = 0;
+    objects.obj65 = 0;
+    objects.es_btn_reboot = 0;
+    objects.home_13 = 0;
+    objects.es_reboot_canvas = 0;
+    objects.es_btn_cancel = 0;
+    objects.home_14 = 0;
+    objects.es_btn_reboot_ok = 0;
+    objects.home_15 = 0;
+    objects.ntp_time_label_1 = 0;
+    objects.up_time_label_1 = 0;
+    objects.es_btn = 0;
+    objects.obj66 = 0;
+    objects.es_ip_canvas = 0;
+    objects.obj67 = 0;
+    objects.obj68 = 0;
+    objects.obj69 = 0;
+    objects.es_btn_close = 0;
+    objects.obj70 = 0;
+    deletePageFlowState(1);
 }
 
 void tick_screen_error_screen() {
@@ -5301,6 +5497,29 @@ void create_screen_fv1_settings() {
         }
     }
     lv_keyboard_set_textarea(objects.fv1_keypad, objects.fv8_set_pressure);
+    
+    tick_screen_fv1_settings();
+}
+
+void delete_screen_fv1_settings() {
+    lv_obj_del(objects.fv1_settings);
+    objects.fv1_settings = 0;
+    objects.fv1_num_label = 0;
+    objects.obj71 = 0;
+    objects.obj72 = 0;
+    objects.obj73 = 0;
+    objects.fv1_label = 0;
+    objects.speedometer_icon_15 = 0;
+    objects.fv1_set_pressure = 0;
+    objects.fv1_differential = 0;
+    objects.fv1_compression_mode = 0;
+    objects.fv1_release_mode = 0;
+    objects.fv1_btn_save = 0;
+    objects.save_22 = 0;
+    objects.fv1_btn_home = 0;
+    objects.home = 0;
+    objects.fv1_keypad = 0;
+    deletePageFlowState(2);
 }
 
 void tick_screen_fv1_settings() {
@@ -5527,6 +5746,29 @@ void create_screen_fv2_settings() {
         }
     }
     lv_keyboard_set_textarea(objects.fv2_keypad, objects.fv8_set_pressure);
+    
+    tick_screen_fv2_settings();
+}
+
+void delete_screen_fv2_settings() {
+    lv_obj_del(objects.fv2_settings);
+    objects.fv2_settings = 0;
+    objects.fv2_num_label = 0;
+    objects.obj74 = 0;
+    objects.obj75 = 0;
+    objects.obj76 = 0;
+    objects.fv2_label = 0;
+    objects.speedometer_icon_14 = 0;
+    objects.fv2_set_pressure = 0;
+    objects.fv2_differential = 0;
+    objects.fv2_compression_mode = 0;
+    objects.fv2_release_mode = 0;
+    objects.fv2_btn_save = 0;
+    objects.save_21 = 0;
+    objects.fv2_btn_home = 0;
+    objects.home_1 = 0;
+    objects.fv2_keypad = 0;
+    deletePageFlowState(3);
 }
 
 void tick_screen_fv2_settings() {
@@ -5753,6 +5995,29 @@ void create_screen_fv3_settings() {
         }
     }
     lv_keyboard_set_textarea(objects.fv3_keypad, objects.fv8_set_pressure);
+    
+    tick_screen_fv3_settings();
+}
+
+void delete_screen_fv3_settings() {
+    lv_obj_del(objects.fv3_settings);
+    objects.fv3_settings = 0;
+    objects.fv3_num_label = 0;
+    objects.obj77 = 0;
+    objects.obj78 = 0;
+    objects.obj79 = 0;
+    objects.fv3_label = 0;
+    objects.speedometer_icon_13 = 0;
+    objects.fv3_set_pressure = 0;
+    objects.fv3_differential = 0;
+    objects.fv3_compression_mode = 0;
+    objects.fv3_release_mode = 0;
+    objects.fv3_btn_save = 0;
+    objects.save_20 = 0;
+    objects.fv3_btn_home = 0;
+    objects.home_8 = 0;
+    objects.fv3_keypad = 0;
+    deletePageFlowState(4);
 }
 
 void tick_screen_fv3_settings() {
@@ -5979,6 +6244,29 @@ void create_screen_fv4_settings() {
         }
     }
     lv_keyboard_set_textarea(objects.fv4_keypad, objects.fv8_set_pressure);
+    
+    tick_screen_fv4_settings();
+}
+
+void delete_screen_fv4_settings() {
+    lv_obj_del(objects.fv4_settings);
+    objects.fv4_settings = 0;
+    objects.fv4_num_label = 0;
+    objects.obj80 = 0;
+    objects.obj81 = 0;
+    objects.obj82 = 0;
+    objects.fv4_label = 0;
+    objects.speedometer_icon_12 = 0;
+    objects.fv4_set_pressure = 0;
+    objects.fv4_differential = 0;
+    objects.fv4_compression_mode = 0;
+    objects.fv4_release_mode = 0;
+    objects.fv4_btn_save = 0;
+    objects.save_19 = 0;
+    objects.fv4_btn_home = 0;
+    objects.home_3 = 0;
+    objects.fv4_keypad = 0;
+    deletePageFlowState(5);
 }
 
 void tick_screen_fv4_settings() {
@@ -6205,6 +6493,29 @@ void create_screen_fv5_settings() {
         }
     }
     lv_keyboard_set_textarea(objects.fv5_keypad, objects.fv8_set_pressure);
+    
+    tick_screen_fv5_settings();
+}
+
+void delete_screen_fv5_settings() {
+    lv_obj_del(objects.fv5_settings);
+    objects.fv5_settings = 0;
+    objects.fv5_num_label = 0;
+    objects.obj83 = 0;
+    objects.obj84 = 0;
+    objects.obj85 = 0;
+    objects.fv5_label = 0;
+    objects.speedometer_icon_11 = 0;
+    objects.fv5_set_pressure = 0;
+    objects.fv5_differential = 0;
+    objects.fv5_compression_mode = 0;
+    objects.fv5_release_mode = 0;
+    objects.fv5_btn_save = 0;
+    objects.save_18 = 0;
+    objects.fv5_btn_home = 0;
+    objects.home_4 = 0;
+    objects.fv5_keypad = 0;
+    deletePageFlowState(6);
 }
 
 void tick_screen_fv5_settings() {
@@ -6431,6 +6742,29 @@ void create_screen_fv6_settings() {
         }
     }
     lv_keyboard_set_textarea(objects.fv6_keypad, objects.fv8_set_pressure);
+    
+    tick_screen_fv6_settings();
+}
+
+void delete_screen_fv6_settings() {
+    lv_obj_del(objects.fv6_settings);
+    objects.fv6_settings = 0;
+    objects.fv6_num_label = 0;
+    objects.obj86 = 0;
+    objects.obj87 = 0;
+    objects.obj88 = 0;
+    objects.fv6_label = 0;
+    objects.speedometer_icon_10 = 0;
+    objects.fv6_set_pressure = 0;
+    objects.fv6_differential = 0;
+    objects.fv6_compression_mode = 0;
+    objects.fv6_release_mode = 0;
+    objects.fv6_btn_save = 0;
+    objects.save_17 = 0;
+    objects.fv6_btn_home = 0;
+    objects.home_5 = 0;
+    objects.fv6_keypad = 0;
+    deletePageFlowState(7);
 }
 
 void tick_screen_fv6_settings() {
@@ -6657,6 +6991,29 @@ void create_screen_fv7_settings() {
         }
     }
     lv_keyboard_set_textarea(objects.fv7_keypad, objects.fv8_set_pressure);
+    
+    tick_screen_fv7_settings();
+}
+
+void delete_screen_fv7_settings() {
+    lv_obj_del(objects.fv7_settings);
+    objects.fv7_settings = 0;
+    objects.fv7_num_label = 0;
+    objects.obj89 = 0;
+    objects.obj90 = 0;
+    objects.obj91 = 0;
+    objects.fv7_label = 0;
+    objects.speedometer_icon_9 = 0;
+    objects.fv7_set_pressure = 0;
+    objects.fv7_compression_mode = 0;
+    objects.fv7_release_mode = 0;
+    objects.fv7_differential = 0;
+    objects.fv7_btn_save = 0;
+    objects.save_15 = 0;
+    objects.fv7_btn_home = 0;
+    objects.home_6 = 0;
+    objects.fv7_keypad = 0;
+    deletePageFlowState(8);
 }
 
 void tick_screen_fv7_settings() {
@@ -6883,6 +7240,29 @@ void create_screen_fv8_settings() {
         }
     }
     lv_keyboard_set_textarea(objects.fv8_keypad, objects.fv8_set_pressure);
+    
+    tick_screen_fv8_settings();
+}
+
+void delete_screen_fv8_settings() {
+    lv_obj_del(objects.fv8_settings);
+    objects.fv8_settings = 0;
+    objects.fv8_num_label = 0;
+    objects.obj92 = 0;
+    objects.obj93 = 0;
+    objects.obj94 = 0;
+    objects.fv8_label = 0;
+    objects.speedometer_icon_7 = 0;
+    objects.fv8_set_pressure = 0;
+    objects.fv8_compression_mode = 0;
+    objects.fv8_release_mode = 0;
+    objects.fv8_differential = 0;
+    objects.fv8_btn_save = 0;
+    objects.save_14 = 0;
+    objects.fv8_btn_home = 0;
+    objects.home_7 = 0;
+    objects.fv8_keypad = 0;
+    deletePageFlowState(9);
 }
 
 void tick_screen_fv8_settings() {
@@ -7274,6 +7654,41 @@ void create_screen_web_manger() {
         }
     }
     lv_keyboard_set_textarea(objects.wm_keypad, objects.fv6_set_pressure);
+    
+    tick_screen_web_manger();
+}
+
+void delete_screen_web_manger() {
+    lv_obj_del(objects.web_manger);
+    objects.web_manger = 0;
+    objects.obj95 = 0;
+    objects.ntp_time_label_2 = 0;
+    objects.up_time_label_2 = 0;
+    objects.obj96 = 0;
+    objects.obj2 = 0;
+    objects.wm_btn_home = 0;
+    objects.home_10 = 0;
+    objects.obj97 = 0;
+    objects.wm_btn_save = 0;
+    objects.wm_save = 0;
+    objects.wm_ssid = 0;
+    objects.wm_pass = 0;
+    objects.wm_mqtt_host = 0;
+    objects.wm_mqtt_topic = 0;
+    objects.wm_mqtt_user = 0;
+    objects.wm_mqtt_pass = 0;
+    objects.wm_mqtt_port = 0;
+    objects.wm_keypad = 0;
+    objects.obj98 = 0;
+    objects.wm_btn_1 = 0;
+    objects.obj99 = 0;
+    objects.wm_ip_canvas = 0;
+    objects.obj100 = 0;
+    objects.obj101 = 0;
+    objects.obj102 = 0;
+    objects.wm_btn_close = 0;
+    objects.obj103 = 0;
+    deletePageFlowState(10);
 }
 
 void tick_screen_web_manger() {
@@ -7555,32 +7970,50 @@ static const char *screen_names[] = { "Main", "Error Screen", "FV1_Settings", "F
 static const char *object_names[] = { "main", "error_screen", "fv1_settings", "fv2_settings", "fv3_settings", "fv4_settings", "fv5_settings", "fv6_settings", "fv7_settings", "fv8_settings", "web_manger", "obj0", "obj0__es_btn", "obj0__wm_btn", "obj0__wifi_4_icon", "obj0__wifi_off_icon", "obj0__ap_icon", "obj0__mqtt_icon", "obj0__error_icon", "obj0__wifi_0_icon", "obj0__wifi_1_icon", "obj0__wifi_2_icon", "obj0__wifi_3_icon", "obj1", "obj1__es_btn", "obj1__wm_btn", "obj1__wifi_4_icon", "obj1__wifi_off_icon", "obj1__ap_icon", "obj1__mqtt_icon", "obj1__error_icon", "obj1__wifi_0_icon", "obj1__wifi_1_icon", "obj1__wifi_2_icon", "obj1__wifi_3_icon", "obj2", "obj2__es_btn", "obj2__wm_btn", "obj2__wifi_4_icon", "obj2__wifi_off_icon", "obj2__ap_icon", "obj2__mqtt_icon", "obj2__error_icon", "obj2__wifi_0_icon", "obj2__wifi_1_icon", "obj2__wifi_2_icon", "obj2__wifi_3_icon", "fv1_meter", "fv1_led_head", "fv1_led_cone", "fv2_meter", "fv2_led_head", "fv2_led_cone", "fv3_meter", "fv3_led_head", "fv3_led_cone", "fv4_meter", "fv4_led_head", "fv4_led_cone", "fv5_meter", "fv5_led_head", "fv5_led_cone", "fv6_meter", "fv6_led_head", "fv6_led_cone", "fv7_meter", "fv7_led_head", "fv7_led_cone", "fv8_meter", "fv8_led_head", "fv8_led_cone", "mn_btn_close", "wm_btn_2", "es_btn_home", "es_btn_clear", "es_btn_reboot", "es_btn_cancel", "es_btn_reboot_ok", "es_btn", "es_btn_close", "fv1_set_pressure", "fv1_differential", "fv1_compression_mode", "fv1_release_mode", "fv1_btn_save", "fv1_btn_home", "fv1_keypad", "fv2_set_pressure", "fv2_differential", "fv2_compression_mode", "fv2_release_mode", "fv2_btn_save", "fv2_btn_home", "fv2_keypad", "fv3_set_pressure", "fv3_differential", "fv3_compression_mode", "fv3_release_mode", "fv3_btn_save", "fv3_btn_home", "fv3_keypad", "fv4_set_pressure", "fv4_differential", "fv4_compression_mode", "fv4_release_mode", "fv4_btn_save", "fv4_btn_home", "fv4_keypad", "fv5_set_pressure", "fv5_differential", "fv5_compression_mode", "fv5_release_mode", "fv5_btn_save", "fv5_btn_home", "fv5_keypad", "fv6_set_pressure", "fv6_differential", "fv6_compression_mode", "fv6_release_mode", "fv6_btn_save", "fv6_btn_home", "fv6_keypad", "fv7_set_pressure", "fv7_compression_mode", "fv7_release_mode", "fv7_differential", "fv7_btn_save", "fv7_btn_home", "fv7_keypad", "fv8_set_pressure", "fv8_compression_mode", "fv8_release_mode", "fv8_differential", "fv8_btn_save", "fv8_btn_home", "fv8_keypad", "wm_btn_home", "wm_btn_save", "wm_ssid", "wm_pass", "wm_mqtt_host", "wm_mqtt_topic", "wm_mqtt_user", "wm_mqtt_pass", "wm_mqtt_port", "wm_keypad", "wm_btn_1", "wm_btn_close", "obj3", "ntp_time_label", "up_time_label", "obj4", "obj5", "fv1_pressure", "obj6", "fv1_head_temp", "obj7", "obj8", "fv1_cone_temp", "obj9", "obj10", "fv2_pressure", "obj11", "obj12", "fv2_head_temp", "obj13", "obj14", "fv2_cone_temp", "obj15", "obj16", "fv3_pressure", "obj17", "obj18", "fv3_head_temp", "obj19", "obj20", "fv3_cone_temp", "obj21", "obj22", "obj23", "fv4_pressure", "obj24", "obj25", "fv4_head_temp", "obj26", "obj27", "fv4_cone_temp", "obj28", "obj29", "obj30", "fv5_pressure", "obj31", "obj32", "fv5_head_temp", "obj33", "obj34", "fv5_cone_temp", "obj35", "obj36", "obj37", "fv6_pressure", "obj38", "obj39", "fv6_head_temp", "obj40", "obj41", "fv6_cone_temp", "obj42", "obj43", "obj44", "fv7_pressure", "obj45", "obj46", "fv7_head_temp", "obj47", "obj48", "fv7_cone_temp", "obj49", "obj50", "obj51", "fv8_pressure", "obj52", "obj53", "fv8_head_temp", "obj54", "obj55", "fv8_cone_temp", "obj56", "obj57", "main_ip_canvas", "obj58", "obj59", "obj60", "obj61", "obj62", "obj63", "obj64", "home_9", "es_error_list", "home_11", "obj65", "home_13", "es_reboot_canvas", "home_14", "home_15", "ntp_time_label_1", "up_time_label_1", "es_ip_canvas", "obj66", "obj67", "obj68", "obj69", "obj70", "fv1_num_label", "obj71", "obj72", "obj73", "fv1_label", "speedometer_icon_15", "save_22", "home", "fv2_num_label", "obj74", "obj75", "obj76", "fv2_label", "speedometer_icon_14", "save_21", "home_1", "fv3_num_label", "obj77", "obj78", "obj79", "fv3_label", "speedometer_icon_13", "save_20", "home_8", "fv4_num_label", "obj80", "obj81", "obj82", "fv4_label", "speedometer_icon_12", "save_19", "home_3", "fv5_num_label", "obj83", "obj84", "obj85", "fv5_label", "speedometer_icon_11", "save_18", "home_4", "fv6_num_label", "obj86", "obj87", "obj88", "fv6_label", "speedometer_icon_10", "save_17", "home_5", "fv7_num_label", "obj89", "obj90", "obj91", "fv7_label", "speedometer_icon_9", "save_15", "home_6", "fv8_num_label", "obj92", "obj93", "obj94", "fv8_label", "speedometer_icon_7", "save_14", "home_7", "obj95", "ntp_time_label_2", "up_time_label_2", "obj96", "home_10", "obj97", "wm_save", "obj98", "wm_ip_canvas", "obj99", "obj100", "obj101", "obj102", "obj103" };
 static const char *style_names[] = { "Meter", "FV_Canvas", "radioBtn", "home_button", "save_button", "textarea", "FV_label", "invisible close button", "invisible button", "wm_label", "Settings labels", "fv_keyboard", "Meter label", "Led_Temp" };
 
-void create_screens() {
-    eez_flow_init_styles(add_style, remove_style);
-    
-    eez_flow_init_screen_names(screen_names, sizeof(screen_names) / sizeof(const char *));
-    eez_flow_init_object_names(object_names, sizeof(object_names) / sizeof(const char *));
-    eez_flow_init_style_names(style_names, sizeof(style_names) / sizeof(const char *));
-    
-    lv_disp_t *dispp = lv_disp_get_default();
-    lv_theme_t *theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
-    lv_disp_set_theme(dispp, theme);
-    
-    create_screen_main();
-    create_screen_error_screen();
-    create_screen_fv1_settings();
-    create_screen_fv2_settings();
-    create_screen_fv3_settings();
-    create_screen_fv4_settings();
-    create_screen_fv5_settings();
-    create_screen_fv6_settings();
-    create_screen_fv7_settings();
-    create_screen_fv8_settings();
-    create_screen_web_manger();
+
+typedef void (*create_screen_func_t)();
+create_screen_func_t create_screen_funcs[] = {
+    create_screen_main,
+    create_screen_error_screen,
+    create_screen_fv1_settings,
+    create_screen_fv2_settings,
+    create_screen_fv3_settings,
+    create_screen_fv4_settings,
+    create_screen_fv5_settings,
+    create_screen_fv6_settings,
+    create_screen_fv7_settings,
+    create_screen_fv8_settings,
+    create_screen_web_manger,
+};
+void create_screen(int screen_index) {
+    create_screen_funcs[screen_index]();
+}
+void create_screen_by_id(enum ScreensEnum screenId) {
+    create_screen_funcs[screenId - 1]();
+}
+
+typedef void (*delete_screen_func_t)();
+delete_screen_func_t delete_screen_funcs[] = {
+    delete_screen_main,
+    delete_screen_error_screen,
+    delete_screen_fv1_settings,
+    delete_screen_fv2_settings,
+    delete_screen_fv3_settings,
+    delete_screen_fv4_settings,
+    delete_screen_fv5_settings,
+    delete_screen_fv6_settings,
+    delete_screen_fv7_settings,
+    delete_screen_fv8_settings,
+    delete_screen_web_manger,
+};
+void delete_screen(int screen_index) {
+    delete_screen_funcs[screen_index]();
+}
+void delete_screen_by_id(enum ScreensEnum screenId) {
+    delete_screen_funcs[screenId - 1]();
 }
 
 typedef void (*tick_screen_func_t)();
-
 tick_screen_func_t tick_screen_funcs[] = {
     tick_screen_main,
     tick_screen_error_screen,
@@ -7593,9 +8026,27 @@ tick_screen_func_t tick_screen_funcs[] = {
     tick_screen_fv7_settings,
     tick_screen_fv8_settings,
     tick_screen_web_manger,
-    0,
 };
-
 void tick_screen(int screen_index) {
     tick_screen_funcs[screen_index]();
+}
+void tick_screen_by_id(enum ScreensEnum screenId) {
+    tick_screen_funcs[screenId - 1]();
+}
+
+void create_screens() {
+    eez_flow_init_styles(add_style, remove_style);
+    
+    eez_flow_init_screen_names(screen_names, sizeof(screen_names) / sizeof(const char *));
+    eez_flow_init_object_names(object_names, sizeof(object_names) / sizeof(const char *));
+    eez_flow_init_style_names(style_names, sizeof(style_names) / sizeof(const char *));
+    
+    eez_flow_set_create_screen_func(create_screen);
+    eez_flow_set_delete_screen_func(delete_screen);
+    
+    lv_disp_t *dispp = lv_disp_get_default();
+    lv_theme_t *theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
+    lv_disp_set_theme(dispp, theme);
+    
+    create_screen_main();
 }
