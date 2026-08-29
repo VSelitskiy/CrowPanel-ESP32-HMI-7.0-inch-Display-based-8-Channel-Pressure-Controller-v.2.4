@@ -13,6 +13,9 @@ extern uint32_t telePeriod;  // Add external declaration
 
 std::mutex settings_mutex;  // Define a global mutex
 
+// Keep a single Error Screen refresh timer alive while that screen is active.
+static lv_timer_t* errorRefreshTimer = nullptr;
+
 // Add these helper functions at the top of the file after includes
 void formatObjectName(char* buffer, size_t bufferSize, const char* prefix, int number, const char* suffix) {
     snprintf(buffer, bufferSize, "%s%d%s", prefix, number, suffix);
@@ -91,22 +94,6 @@ extern "C" void action_settings_screen_load(lv_event_t *e) {
     }
 }
 
-// Function to create JSON string compatible with ArduinoJson v7 
-void createSettingsJson(char* output, size_t outputSize, int tankIndex) { 
-    if (!tanks[tankIndex]) return;
-    
-    JsonDocument doc; 
-    doc["tankNumber"] = tankIndex + 1;
-    doc["setPressure"] = tanks[tankIndex]->getSetPressure();
-    doc["pressureDifferential"] = tanks[tankIndex]->getPressureDifferential();
-    doc["pressureMode"] = tanks[tankIndex]->getPressureMode(); 
-    doc["volts_4"] = tanks[tankIndex]->getVolts4(); 
-    doc["volts_20"] = tanks[tankIndex]->getVolts20(); 
-    doc["sensorRange"] = tanks[tankIndex]->getSensorRange(); 
-    doc["request"] = 1; 
-    serializeJson(doc, output, outputSize); 
-}
-
 // Save settings handler function with dynamic tank number
 extern "C" void action_save_settings(lv_event_t *e) {
     lv_obj_t* screen = lv_obj_get_parent(lv_event_get_target(e));
@@ -126,7 +113,6 @@ extern "C" void action_save_settings(lv_event_t *e) {
     }
 
     std::lock_guard<std::mutex> settings_lock(settings_mutex);
-    shouldSaveConfig = true;
 
     char buffer[10];  // Reduced from 16 to 10 for pressure values
     char objNameBuffer[32];  // Reduced from 64 to 32 for object names
@@ -159,12 +145,12 @@ extern "C" void action_save_settings(lv_event_t *e) {
         tanks[tankIndex]->setPressureMode(lv_obj_has_state(compressionModeObj, LV_STATE_CHECKED) ? 0 : 1);
     }
 
-    // Generate JSON and save settings
-    char jsonBuffer[256];  // Reduced from 512 to 128 - sufficient for tank settings
-    createSettingsJson(jsonBuffer, sizeof(jsonBuffer), tankIndex);
-    writeFile(LittleFS, settings[tankIndex].c_str(), jsonBuffer);
-    loadSettingsFile(jsonBuffer);
-    ws1.textAll(jsonBuffer);
+    // Tank is the single source of truth for settings serialization.
+    const String jsonSettings = tanks[tankIndex]->getSettings();
+    writeFile(LittleFS, settings[tankIndex].c_str(), jsonSettings.c_str());
+
+    // loadSettingsFile() publishes the normalized settings to MQTT and ws1.
+    loadSettingsFile(jsonSettings);
 }
 
 // Keyboard event handler function with dynamic tank number
@@ -172,7 +158,7 @@ extern "C" void action_keyboard_event_handler(lv_event_t *e) {
     lv_obj_t *target = lv_event_get_target(e);
     lv_obj_t *textarea = lv_keyboard_get_textarea(target);
 
-    if (!lv_obj_check_type(textarea, &lv_textarea_class)) {
+    if (textarea == nullptr || !lv_obj_check_type(textarea, &lv_textarea_class)) {
         return;
     }
 
@@ -294,8 +280,7 @@ extern "C" void action_wm_save_settings(lv_event_t *e) {
 }
 
 extern "C" void action_wm_reboot_esp(lv_event_t *e) {
-    delay(300);
-    ESP.restart();
+    scheduleRestart(300);
 }
 
 // Function to display error messages 
@@ -309,14 +294,21 @@ void display_error_messages() {
     }
 }
 
-// Function to refresh the error list periodically 
-void refresh_error_list(lv_timer_t * timer) { 
-    display_error_messages(); 
+// Refresh the Error Screen only while it is the active screen.
+void refresh_error_list(lv_timer_t *timer) {
+    if (lv_scr_act() != objects.error_screen) {
+        if (timer == errorRefreshTimer) {
+            errorRefreshTimer = nullptr;
+        }
+        lv_timer_del(timer);
+        return;
+    }
+
+    display_error_messages();
 }
 
 // Clear Button handler function
 extern "C" void action_es_clear_error_messages(lv_event_t *e) {
-    lv_scr_load(objects.error_screen);
     clearErrorMessages();
     set_var_error_status(false);
     display_error_messages();
@@ -324,9 +316,15 @@ extern "C" void action_es_clear_error_messages(lv_event_t *e) {
 
 // Error Screen Load event handler
 extern "C" void action_es_screen_load(lv_event_t *e) {
-    lv_scr_load(objects.error_screen); 
     display_error_messages();
-    lv_timer_create(refresh_error_list, INDICATION_TIME, NULL);
+
+    // Do not reload the screen from its own load callback and do not
+    // create another repeating timer every time the screen is opened.
+    if (errorRefreshTimer == nullptr) {
+        errorRefreshTimer = lv_timer_create(refresh_error_list, INDICATION_TIME, nullptr);
+    } else {
+        lv_timer_reset(errorRefreshTimer);
+    }
 }
 
 // click sound

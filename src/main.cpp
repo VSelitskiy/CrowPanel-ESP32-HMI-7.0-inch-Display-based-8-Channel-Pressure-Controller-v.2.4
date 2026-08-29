@@ -52,7 +52,7 @@ std::map<int, unsigned long> lastErrorLogTime; // Map to store the last log time
 
 // Constants
 
-const char* FIRMWARE_VERSION = "2.1.3"; // v.2.1.2 + corrected OTA + mqtt reatart command 
+const char* FIRMWARE_VERSION = "2.1.4"; // Common reliability fixes ported from the Boia Temperature Controller work
 
 // const char* PRESET_PIN = "0808";
 const uint16_t INTERVAL = 60000; // INTERVAL to wait for Wi-Fi connection (milliseconds)
@@ -136,8 +136,18 @@ bool init_ads0049 = false;
 // State variable to track backlight status
 bool backlightOn = true; 
 
-// Define a flag to indicate when to finalize the OTA update
-bool shouldFinalizeUpdate = false;
+// Flags shared between asynchronous callbacks and the main loop.
+volatile bool shouldFinalizeUpdate = false;
+volatile bool restartPending = false;
+volatile uint32_t restartRequestedAt = 0;
+volatile uint32_t restartDelayMs = 0;
+
+void scheduleRestart(uint32_t delayMs)
+{
+  restartRequestedAt = millis();
+  restartDelayMs = delayMs;
+  restartPending = true;
+}
 
 // Array of function pointers to set_var_fvi_pressure functions
 void (*setPressureFuncs[NUMBER_OF_TANKS])(float) = { 
@@ -654,7 +664,7 @@ String getSensorReadings() {
   Wifi["linkCount"] = linkCounter;
   Wifi["mqttCount"] = mqttCounter;
 
-  // Set or reset error status based on the presence of errors
+  // Set or reset error status based on the presence of sensor errors.
   set_var_error_status(hasError);
 
   String output;
@@ -669,7 +679,7 @@ void handleWebSocketMessage_ws1(void *arg, uint8_t *data, size_t len)
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
   {
     JsonDocument rx_json;
-    DeserializationError error = deserializeJson(rx_json, data);
+    DeserializationError error = deserializeJson(rx_json, data, len);
     if (error)
     {
       String errorMsg = "Failed to load json from a web: " + String(error.c_str());
@@ -679,29 +689,50 @@ void handleWebSocketMessage_ws1(void *arg, uint8_t *data, size_t len)
     }
 
     shouldSaveConfig = rx_json["request"].as<bool>();
-    uint8_t i = rx_json["tankNumber"];
+    const int receivedTankNumber = rx_json["tankNumber"].as<int>();
+
+    if (receivedTankNumber < 1 || receivedTankNumber > NUMBER_OF_TANKS)
+    {
+      Serial.println("Invalid tank number in WebSocket message.");
+      shouldSaveConfig = false;
+      return;
+    }
+
+    const int tankIndex = receivedTankNumber - 1;
+    if (tanks[tankIndex] == nullptr)
+    {
+      Serial.println("Null tank object in WebSocket message.");
+      shouldSaveConfig = false;
+      return;
+    }
+
     String output;
 
     if (shouldSaveConfig)
     {
       serializeJson(rx_json, output);
-      writeFile(LittleFS, settings[i - 1].c_str(), output.c_str());
-      loadSettingsFile(output);
-      shouldSaveConfig = false;
-    }
-    else
-    {
-      int tankIndex = i - 1;
-      if (tanks[tankIndex]) {
-        rx_json["setPressure"] = tanks[tankIndex]->getSetPressure();
-        rx_json["pressureDifferential"] = tanks[tankIndex]->getPressureDifferential();
-        rx_json["pressureMode"] = tanks[tankIndex]->getPressureMode();
-        rx_json["volts_4"] = tanks[tankIndex]->getVolts4();
-        rx_json["volts_20"] = tanks[tankIndex]->getVolts20();
-        rx_json["sensorRange"] = tanks[tankIndex]->getSensorRange();
+      writeFile(LittleFS, settings[tankIndex].c_str(), output.c_str());
+
+      if (!loadSettingsFile(output))
+      {
+        Serial.printf("Failed to apply WebSocket settings for FV%d\n", receivedTankNumber);
+        shouldSaveConfig = false;
+        return;
       }
-      serializeJson(rx_json, output);
+
+      shouldSaveConfig = false;
+
+      // loadSettingsFile() already publishes the updated settings to ws1.
+      return;
     }
+
+    rx_json["setPressure"] = tanks[tankIndex]->getSetPressure();
+    rx_json["pressureDifferential"] = tanks[tankIndex]->getPressureDifferential();
+    rx_json["pressureMode"] = tanks[tankIndex]->getPressureMode();
+    rx_json["volts_4"] = tanks[tankIndex]->getVolts4();
+    rx_json["volts_20"] = tanks[tankIndex]->getVolts20();
+    rx_json["sensorRange"] = tanks[tankIndex]->getSensorRange();
+    serializeJson(rx_json, output);
     ws1.textAll(output);
   }
 }
@@ -711,7 +742,7 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len) {
     AwsFrameInfo *info = (AwsFrameInfo *)arg;
     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
         JsonDocument rx_json;
-        DeserializationError error = deserializeJson(rx_json, data);
+        DeserializationError error = deserializeJson(rx_json, data, len);
         if (error) {
             String errorMsg = "Failed to parse WebSocket message: " + String(error.c_str());
             Serial.println(errorMsg);
@@ -1030,8 +1061,7 @@ void setupWebManager() {
         
         writeFile(LittleFS, jsonWiFiConfigFile, saveConfigFile(wifi_config).c_str());
         request->send(200, "text/plain", "Done. ESP will restart in 3 seconds.");
-        delay(3000);
-        ESP.restart();
+        scheduleRestart(3000);
     });
 }
 
@@ -1185,8 +1215,8 @@ void onMqttMessage(char *topic, char *payload, int retain, int qos, bool dup)
       {
         Serial.println("MQTT restart command received.");
         mqttClient.publish(mqtt_topic_lwt, 1, true, "Restarting");
-        delay(500);
-        ESP.restart();
+        scheduleRestart(500);
+        return;
       }
     }
 
@@ -1248,7 +1278,6 @@ void onMqttMessage(char *topic, char *payload, int retain, int qos, bool dup)
 
             formatTankStateTopic(mqtt_topic_state_fv, i);
             PublishMqtt(output, mqtt_topic_state_fv);
-            delay(100);
             PublishMqtt(getSensorReadings(), mqtt_topic_sensor);
             ws1.textAll(output);
         }
@@ -1274,7 +1303,9 @@ void onMqttPublish(uint16_t packetId)
 // Pressure Controller
 void pressureController() {
     for (uint8_t i = 0; i < NUMBER_OF_TANKS; i++) {
-        tanks[i]->updatePressureControl();
+        if (tanks[i] != nullptr) {
+            tanks[i]->updatePressureControl();
+        }
     }
 }
 
@@ -1282,13 +1313,13 @@ String printLocalTime()
 {
   char buffer [32];
   struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)){
+  if(!getLocalTime(&timeinfo, 10)){
     Serial.println("No time available (yet)");
     return "";
   }
   // Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
   Serial.println(&timeinfo, "%H:%M:%S");
-  strftime (buffer,80,"%d.%m.%Y %X",&timeinfo);
+  strftime(buffer, sizeof(buffer), "%d.%m.%Y %X", &timeinfo);
   return buffer;
 }
 
@@ -1360,7 +1391,7 @@ void addErrorMessage(const String& message, int errorCode, int severity) {
     
     char timestamp[32];
     struct tm timeinfo;
-    if (getLocalTime(&timeinfo)) {
+    if (getLocalTime(&timeinfo, 10)) {
         strftime(timestamp, sizeof(timestamp), "%d.%m.%Y %X", &timeinfo);
     } else {
         snprintf(timestamp, sizeof(timestamp), "Time not set");
@@ -1557,6 +1588,12 @@ void loop()
   // limits the number of clients by closing the oldest client
   ws.cleanupClients();
   ws1.cleanupClients();
+
+  if (restartPending &&
+      (uint32_t)(millis() - restartRequestedAt) >= restartDelayMs) {
+    restartPending = false;
+    ESP.restart();
+  }
   
   // Restart after successful OTA update.
   // Update.end(true) is already called in OTAWebServer().
@@ -1564,8 +1601,7 @@ void loop()
     shouldFinalizeUpdate = false;
 
     Serial.println("OTA update completed. Restarting...");
-    delay(1000);
-    ESP.restart();
+    scheduleRestart(1000);
   }
   pressureController();
 

@@ -77,6 +77,9 @@ extern String mqtt_topic;
 // Shared file path 
 extern const char *jsonWiFiConfigFile;
 
+// Schedule an ESP restart from the main loop without blocking callbacks.
+void scheduleRestart(uint32_t delayMs);
+
 // Flags
 extern bool shouldSaveConfig;
 

@@ -23,6 +23,14 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 
+namespace {
+
+bool hasJsonValue(const JsonDocument& document, const char* key) {
+    return !document[key].isNull();
+}
+
+} // namespace
+
 Tank::Tank(uint8_t id, 
            PressureConfig pressureConfig,
            DigitalOutput* pressureOutput,
@@ -294,12 +302,6 @@ String Tank::getSettings() const {
     doc["volts_20"] = volts20;
     doc["sensorRange"] = sensorRange;
     
-    // Add temperature settings
-    doc["tempConfig"] = static_cast<int>(tempConfig);
-    doc["targetTemp"] = targetTemp;
-    doc["tempDifferential"] = tempDifferential;
-    doc["tempMode"] = tempMode;
-    
     String output;
     serializeJson(doc, output);
     return output;
@@ -307,30 +309,43 @@ String Tank::getSettings() const {
 
 bool Tank::loadSettings(const String& settings) {
     JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, settings);
+    const DeserializationError error = deserializeJson(doc, settings);
     
     if (error) {
         return false;
     }
 
-    // Verify this is the correct tank
+    // Verify this is the correct tank.
     if (doc["tankNumber"].as<uint8_t>() != id) {
         return false;
     }
 
-    // Load settings with validation
-    setSetPressure(doc["setPressure"].as<float>());
-    setPressureDifferential(doc["pressureDifferential"].as<float>());
-    setPressureMode(doc["pressureMode"].as<int8_t>());
-    setVolts4(doc["volts_4"].as<float>());
-    setVolts20(doc["volts_20"].as<float>());
-    setSensorRange(doc["sensorRange"].as<float>());
+    // Apply only fields that are present. This supports both complete
+    // settings documents and partial MQTT commands without resetting
+    // unrelated values to ArduinoJson defaults.
+    if (hasJsonValue(doc, "setPressure")) {
+        setSetPressure(doc["setPressure"].as<float>());
+    }
 
-    // Load temperature settings
-    setTempConfig(static_cast<TempSensorConfig>(doc["tempConfig"].as<int>()));
-    setTargetTemp(doc["targetTemp"].as<float>());
-    setTempDifferential(doc["tempDifferential"].as<float>());
-    setTempMode(doc["tempMode"].as<int8_t>());
+    if (hasJsonValue(doc, "pressureDifferential")) {
+        setPressureDifferential(doc["pressureDifferential"].as<float>());
+    }
+
+    if (hasJsonValue(doc, "pressureMode")) {
+        setPressureMode(doc["pressureMode"].as<int8_t>());
+    }
+
+    if (hasJsonValue(doc, "volts_4")) {
+        setVolts4(doc["volts_4"].as<float>());
+    }
+
+    if (hasJsonValue(doc, "volts_20")) {
+        setVolts20(doc["volts_20"].as<float>());
+    }
+
+    if (hasJsonValue(doc, "sensorRange")) {
+        setSensorRange(doc["sensorRange"].as<float>());
+    }
 
     return true;
 }
