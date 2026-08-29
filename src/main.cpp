@@ -20,6 +20,7 @@
 #include <time.h>
 #include <esp_sntp.h>
 #include <map>
+#include <cmath>
 
 #include "main.h"
 #include "ui/ui.h"
@@ -34,7 +35,6 @@
 
 // Definition of global variables
 Tank* tanks[NUMBER_OF_TANKS] = {nullptr};  // Array of tank object pointers
-PCAL9535AOutput* tankOutputs[NUMBER_OF_TANKS] = {nullptr};  // Array of digital outputs
 
 // Configuration variables
 String wifi_config;
@@ -52,7 +52,7 @@ std::map<int, unsigned long> lastErrorLogTime; // Map to store the last log time
 
 // Constants
 
-const char* FIRMWARE_VERSION = "2.3.0"; // Rolling ADC averaging, LVGL refresh and Web UI improvements
+const char* FIRMWARE_VERSION = "2.4.4"; // Audited common fixes aligned with Boia V1.4
 
 // const char* PRESET_PIN = "0808";
 const uint16_t INTERVAL = 60000; // INTERVAL to wait for Wi-Fi connection (milliseconds)
@@ -71,16 +71,6 @@ uint64_t lastActivityTime = 0;
 
 // Process variables
 uint8_t tankNumber = 0;
-uint8_t pressureMode[NUMBER_OF_TANKS];
-int16_t adc[NUMBER_OF_TANKS];
-float volts[NUMBER_OF_TANKS];
-float volts_4[NUMBER_OF_TANKS];
-float volts_20[NUMBER_OF_TANKS];
-float sensorRange[NUMBER_OF_TANKS];
-float setPressure[NUMBER_OF_TANKS];
-float pressureDifferential[NUMBER_OF_TANKS];
-float pressure[NUMBER_OF_TANKS];
-uint8_t sensorError[NUMBER_OF_TANKS];
 
 static constexpr uint8_t ADC_AVERAGE_BITS = 2;
 static constexpr uint8_t ADC_AVERAGE_SAMPLES = 1U << ADC_AVERAGE_BITS;
@@ -235,9 +225,6 @@ FTPServer ftpSrv(LittleFS);
 Adafruit_ADS1115 ads0048; /* Use this for the 16-bit version */
 Adafruit_ADS1115 ads0049; /* Use this for the 16-bit version */
 
-// Create object for Relays Board
-PCAL9535A::PCAL9535A<TwoWire> gpio(Wire);
-
 void switchBacklightOn() {
   digitalWrite(BACKLIGHT_PIN, HIGH);
   backlightOn = true;
@@ -378,8 +365,8 @@ bool loadSettingsFile(const String &settingFile) {
     }
 
     JsonDocument json;
-    DeserializationError error = deserializeJson(json, settingFile);
-    
+    const DeserializationError error = deserializeJson(json, settingFile);
+
     if (error) {
         char errorMsg[64];
         snprintf(errorMsg, sizeof(errorMsg), "Failed to load json settings file: %s", error.c_str());
@@ -388,27 +375,28 @@ bool loadSettingsFile(const String &settingFile) {
         return false;
     }
 
-    uint8_t i = json["tankNumber"].as<signed char>();
-    if (i < 1 || i > NUMBER_OF_TANKS) {
+    const uint8_t tankNumber = json["tankNumber"].as<uint8_t>();
+    if (tankNumber < 1 || tankNumber > NUMBER_OF_TANKS) {
         Serial.println("Invalid tank number in settings file");
         return false;
     }
 
-    int tankIndex = i - 1;
-    
-    // Update Tank object
-    if (tanks[tankIndex]) {
-        tanks[tankIndex]->setSetPressure(json["setPressure"].as<float>());
-        tanks[tankIndex]->setPressureDifferential(json["pressureDifferential"].as<float>());
-        tanks[tankIndex]->setPressureMode(json["pressureMode"].as<unsigned char>());
-        tanks[tankIndex]->setVolts4(json["volts_4"].as<float>());
-        tanks[tankIndex]->setVolts20(json["volts_20"].as<float>());
-        tanks[tankIndex]->setSensorRange(json["sensorRange"].as<float>());
+    const int tankIndex = tankNumber - 1;
+    if (tanks[tankIndex] == nullptr) {
+        Serial.println("Null tank object in settings file");
+        return false;
     }
-    
-    formatTankStateTopic(mqtt_topic_state_fv, i);
-    PublishMqtt(settingFile, mqtt_topic_state_fv);
-    ws1.textAll(settingFile);
+
+    // Tank is the single source of truth for pressure settings.
+    if (!tanks[tankIndex]->loadSettings(settingFile)) {
+        Serial.printf("Failed to load settings for FV%d\n", tankNumber);
+        return false;
+    }
+
+    const String canonicalSettings = tanks[tankIndex]->getSettings();
+    formatTankStateTopic(mqtt_topic_state_fv, tankNumber);
+    PublishMqtt(canonicalSettings, mqtt_topic_state_fv);
+    ws1.textAll(canonicalSettings);
     return true;
 }
 
@@ -574,7 +562,21 @@ void readPressureChannel(uint8_t tankIndex,
 
   const float measuredVolts = adcDevice.computeVolts(filteredAdcValue);
   tanks[tankIndex]->setVoltage(measuredVolts);
-  tanks[tankIndex]->setPressure(tanks[tankIndex]->calculatePressure(measuredVolts));
+
+  const float calculatedPressure =
+      tanks[tankIndex]->calculatePressure(measuredVolts);
+
+  if (!std::isfinite(calculatedPressure)) {
+    String errorMsg =
+        "Pressure calibration error on channel " + String(tankIndex);
+    Serial.print("Error: ");
+    Serial.println(errorMsg);
+    addErrorMessage(errorMsg, SENSOR_ERROR_CALIBRATION, 2);
+    tanks[tankIndex]->setSensorError(1);
+    return;
+  }
+
+  tanks[tankIndex]->setPressure(calculatedPressure);
 
   if (measuredVolts < tanks[tankIndex]->getVolts4() * 0.8f ||
       measuredVolts > tanks[tankIndex]->getVolts20() * 1.2f) {
@@ -690,7 +692,7 @@ void handleWebSocketMessage_ws1(void *arg, uint8_t *data, size_t len)
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
   {
     JsonDocument rx_json;
-    DeserializationError error = deserializeJson(rx_json, data, len);
+    const DeserializationError error = deserializeJson(rx_json, data, len);
     if (error)
     {
       String errorMsg = "Failed to load json from a web: " + String(error.c_str());
@@ -717,34 +719,30 @@ void handleWebSocketMessage_ws1(void *arg, uint8_t *data, size_t len)
       return;
     }
 
-    String output;
-
     if (shouldSaveConfig)
     {
-      serializeJson(rx_json, output);
-      writeFile(LittleFS, settings[tankIndex].c_str(), output.c_str());
+      String requestedSettings;
+      serializeJson(rx_json, requestedSettings);
 
-      if (!loadSettingsFile(output))
+      if (!tanks[tankIndex]->loadSettings(requestedSettings))
       {
         Serial.printf("Failed to apply WebSocket settings for FV%d\n", receivedTankNumber);
         shouldSaveConfig = false;
         return;
       }
 
-      shouldSaveConfig = false;
+      const String canonicalSettings = tanks[tankIndex]->getSettings();
+      writeFile(LittleFS, settings[tankIndex].c_str(), canonicalSettings.c_str());
 
-      // loadSettingsFile() already publishes the updated settings to ws1.
+      formatTankStateTopic(mqtt_topic_state_fv, receivedTankNumber);
+      PublishMqtt(canonicalSettings, mqtt_topic_state_fv);
+      ws1.textAll(canonicalSettings);
+
+      shouldSaveConfig = false;
       return;
     }
 
-    rx_json["setPressure"] = tanks[tankIndex]->getSetPressure();
-    rx_json["pressureDifferential"] = tanks[tankIndex]->getPressureDifferential();
-    rx_json["pressureMode"] = tanks[tankIndex]->getPressureMode();
-    rx_json["volts_4"] = tanks[tankIndex]->getVolts4();
-    rx_json["volts_20"] = tanks[tankIndex]->getVolts20();
-    rx_json["sensorRange"] = tanks[tankIndex]->getSensorRange();
-    serializeJson(rx_json, output);
-    ws1.textAll(output);
+    ws1.textAll(tanks[tankIndex]->getSettings());
   }
 }
 
@@ -1035,43 +1033,63 @@ void OTAWebServer()
 
 // Common web manager setup function
 void setupWebManager() {
-    // Common routes for both AP and STA modes
     server.serveStatic("/", LittleFS, "/").setDefaultFile("/index.html");
-    
-    // Add web manager route
+
     server.on("/webmanager", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(LittleFS, "/wifimanager.html", "text/html");
     });
 
-    // Common POST handler for web manager
+    // Return current non-secret settings. Password contents never leave the controller.
+    server.on("/webmanager-config", HTTP_GET, [](AsyncWebServerRequest *request) {
+        JsonDocument json;
+        json["ssid"] = ssid;
+        json["mqtt_host"] = mqtt_host;
+        json["mqtt_port"] = mqtt_port;
+        json["mqtt_user"] = mqtt_user;
+        json["mqtt_topic"] = mqtt_topic;
+        json["wifi_password_length"] = pass.length();
+        json["mqtt_password_length"] = mqtt_password.length();
+
+        String output;
+        serializeJson(json, output);
+        request->send(200, "application/json", output);
+    });
+
     server.on("/webmanager", HTTP_POST, [](AsyncWebServerRequest *request) {
-        int params = request->params();
-        for (uint8_t i = 0; i < params; i++) {
-            const AsyncWebParameter* p = request->getParam(i);
-            if (p->isPost()) {
-                const char* name = p->name().c_str();
-                const char* value = p->value().c_str();
-                
-                if (strcmp(name, PARAM_INPUT_1) == 0) {
-                    ssid = value;
-                } else if (strcmp(name, PARAM_INPUT_2) == 0) {
+        const int params = request->params();
+        for (int i = 0; i < params; i++) {
+            const AsyncWebParameter *parameter = request->getParam(i);
+            if (!parameter->isPost()) {
+                continue;
+            }
+
+            const String name = parameter->name();
+            const String value = parameter->value();
+
+            if (name == PARAM_INPUT_1) {
+                ssid = value;
+            } else if (name == PARAM_INPUT_2) {
+                // An empty password means keep the currently stored password.
+                if (!value.isEmpty()) {
                     pass = value;
-                } else if (strcmp(name, PARAM_INPUT_3) == 0) {
-                    mqtt_host = value;
-                } else if (strcmp(name, PARAM_INPUT_4) == 0) {
-                    mqtt_port = value;
-                } else if (strcmp(name, PARAM_INPUT_5) == 0) {
-                    mqtt_user = value;
-                } else if (strcmp(name, PARAM_INPUT_6) == 0) {
-                    mqtt_password = value;
-                } else if (strcmp(name, PARAM_INPUT_7) == 0) {
-                    mqtt_topic = value;
                 }
+            } else if (name == PARAM_INPUT_3) {
+                mqtt_host = value;
+            } else if (name == PARAM_INPUT_4) {
+                mqtt_port = value;
+            } else if (name == PARAM_INPUT_5) {
+                mqtt_user = value;
+            } else if (name == PARAM_INPUT_6) {
+                if (!value.isEmpty()) {
+                    mqtt_password = value;
+                }
+            } else if (name == PARAM_INPUT_7) {
+                mqtt_topic = value;
             }
         }
-        
+
         writeFile(LittleFS, jsonWiFiConfigFile, saveConfigFile(wifi_config).c_str());
-        request->send(200, "text/plain", "Done. ESP will restart in 3 seconds.");
+        request->send(200, "text/plain", "Settings saved. ESP will restart shortly.");
         scheduleRestart(3000);
     });
 }
@@ -1250,52 +1268,39 @@ void onMqttMessage(char *topic, char *payload, int retain, int qos, bool dup)
         }
     }
 
-    const char *_tanknumber = obj["tankNumber"].as<const char *>();
-    const char *_setPressure = obj["setPressure"].as<const char *>();
-    const char *_pressureDifferential = obj["pressureDifferential"].as<const char *>();
-    const char *_pressureMode = obj["pressureMode"].as<const char *>();
-
-    uint8_t i = 0;
-    if (_tanknumber != nullptr)
+    // Handle tank-specific configuration commands through Tank.
+    if (!obj["tankNumber"].isNull())
     {
-        i = atoi(_tanknumber);
-        int tankIndex = i - 1;
-        if (tankIndex >= 0 && tankIndex < NUMBER_OF_TANKS && tanks[tankIndex]) {
-            if (_setPressure != nullptr)
-            {
-                tanks[tankIndex]->setSetPressure(atof(_setPressure));
-            }
-            else if (_pressureDifferential != nullptr)
-            {
-                float diff = atof(_pressureDifferential);
-                if (diff == 0) diff = 0.006f;
-                tanks[tankIndex]->setPressureDifferential(diff);
-            }
-            else if (_pressureMode != nullptr)
-            {
-                tanks[tankIndex]->setPressureMode(atoi(_pressureMode));
-            }
-
-            doc["setPressure"] = tanks[tankIndex]->getSetPressure();
-            doc["pressureDifferential"] = tanks[tankIndex]->getPressureDifferential();
-            doc["pressureMode"] = tanks[tankIndex]->getPressureMode();
-            doc["volts_4"] = tanks[tankIndex]->getVolts4();
-            doc["volts_20"] = tanks[tankIndex]->getVolts20();
-            doc["sensorRange"] = tanks[tankIndex]->getSensorRange();
-
-            String output;
-            serializeJson(doc, output);
-            writeFile(LittleFS, settings[i - 1].c_str(), output.c_str());
-
-            formatTankStateTopic(mqtt_topic_state_fv, i);
-            PublishMqtt(output, mqtt_topic_state_fv);
-            PublishMqtt(getSensorReadings(), mqtt_topic_sensor);
-            ws1.textAll(output);
+        const uint8_t tankNumber = obj["tankNumber"].as<uint8_t>();
+        if (tankNumber < 1 || tankNumber > NUMBER_OF_TANKS) {
+            Serial.println("Invalid tank number in MQTT command.");
+            return;
         }
-        else
-        {
-            Serial.println("Invalid tank index or null tank object.");
+
+        const int tankIndex = tankNumber - 1;
+        if (tanks[tankIndex] == nullptr) {
+            Serial.println("Null tank object in MQTT command.");
+            return;
         }
+
+        doc["tankNumber"] = tankNumber;
+
+        String requestedSettings;
+        serializeJson(doc, requestedSettings);
+
+        // Tank::loadSettings() applies only fields present in the command.
+        if (!tanks[tankIndex]->loadSettings(requestedSettings)) {
+            Serial.printf("Failed to apply MQTT settings for FV%d\n", tankNumber);
+            return;
+        }
+
+        const String canonicalSettings = tanks[tankIndex]->getSettings();
+        writeFile(LittleFS, settings[tankIndex].c_str(), canonicalSettings.c_str());
+
+        formatTankStateTopic(mqtt_topic_state_fv, tankNumber);
+        PublishMqtt(canonicalSettings, mqtt_topic_state_fv);
+        PublishMqtt(getSensorReadings(), mqtt_topic_sensor);
+        ws1.textAll(canonicalSettings);
     }
 }
 
@@ -1661,18 +1666,7 @@ void loop()
     for (uint8_t j = 0; j < NUMBER_OF_TANKS; ++j)
     {
       if (tanks[j]) {
-        JsonDocument doc;
-        doc["tankNumber"] = j + 1;
-        doc["setPressure"] = tanks[j]->getSetPressure();
-        doc["pressureDifferential"] = tanks[j]->getPressureDifferential();
-        doc["pressureMode"] = tanks[j]->getPressureMode();
-        doc["volts_4"] = tanks[j]->getVolts4();
-        doc["volts_20"] = tanks[j]->getVolts20();
-        doc["sensorRange"] = tanks[j]->getSensorRange();
-        
-        char outputSettings[256];
-        size_t len = serializeJson(doc, outputSettings, sizeof(outputSettings));
-        Serial.printf("Serialized JSON length: %u\n", (unsigned)len);
+        const String outputSettings = tanks[j]->getSettings();
         formatTankStateTopic(mqtt_topic_state_fv, j + 1);
         PublishMqtt(outputSettings, mqtt_topic_state_fv);
         

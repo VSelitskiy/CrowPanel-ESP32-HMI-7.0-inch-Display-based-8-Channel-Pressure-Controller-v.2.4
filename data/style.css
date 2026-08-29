@@ -393,74 +393,53 @@ select:disabled {
   background: rgb(255, 35, 119);
 }
 
-.webmanager-page {
-  background: #f5f5f5;
-}
-
-.webmanager-content {
-  padding: 32px 20px;
-}
-
 .webmanager-card {
-  width: min(560px, 100%);
-  margin: 0 auto;
-  padding: 24px 28px 28px;
-  box-sizing: border-box;
-  border-radius: 4px;
+  padding: 20px 24px 18px;
 }
 
-.webmanager-form {
-  text-align: left;
-}
-
-.webmanager-form h3 {
-  color: #034078;
-  margin: 4px 0 18px;
-  font-size: 1.1rem;
-}
-
-.webmanager-form h3:not(:first-child) {
-  margin-top: 28px;
-}
-
-.webmanager-field {
+.webmanager-form-grid {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
+  grid-template-columns: 160px minmax(220px, 320px);
+  column-gap: 14px;
+  row-gap: 10px;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  justify-content: center;
 }
 
-.webmanager-field label {
-  font-size: 0.95rem;
-  color: #333;
+.webmanager-form-grid label {
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
 }
 
-.webmanager-field input {
+.webmanager-form-grid input:not([type="submit"]) {
   width: 100%;
   box-sizing: border-box;
-  padding: 9px 10px;
-  border: 1px solid #bbb;
-  border-radius: 3px;
-  font: inherit;
+  padding: 4px 8px;
 }
 
-.webmanager-field input:focus {
-  outline: 2px solid rgba(63, 81, 181, 0.22);
-  border-color: #3f51b5;
+.form-spacer {
+  grid-column: 1 / -1;
+  height: 6px;
 }
 
-.webmanager-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-top: 28px;
+.form-actions {
+  grid-column: 2;
+  justify-self: start;
+  margin-top: 4px;
 }
 
-.webmanager-actions .button,
-.webmanager-actions input[type=submit] {
-  margin: 0;
+.save-feedback {
+  grid-column: 2;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 8px 2px;
+  text-align: left;
+  line-height: 1.5;
+}
+
+#countdown {
+  margin-top: 4px;
 }
 
 @media (max-width: 600px) {
@@ -474,11 +453,25 @@ select:disabled {
   }
 
   .webmanager-card {
-    padding: 20px 16px 22px;
+    padding: 18px 16px;
   }
 
-  .webmanager-field {
+  .webmanager-form-grid {
     grid-template-columns: 1fr;
-    gap: 5px;
+  }
+
+  .webmanager-form-grid label {
+    text-align: left;
+  }
+
+  .form-spacer,
+  .form-actions,
+  .save-feedback {
+    grid-column: 1;
+  }
+
+  .save-feedback {
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }

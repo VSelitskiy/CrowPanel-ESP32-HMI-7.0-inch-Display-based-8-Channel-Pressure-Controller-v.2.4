@@ -2,57 +2,192 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pressure Controller Web Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" type="text/css" href="style.css">
 </head>
-<body class="webmanager-page">
+<body>
   <div class="topnav">
     <h1>Pressure Controller</h1>
     <h2>Web Manager</h2>
   </div>
-  <main class="content webmanager-content">
-    <section class="card webmanager-card">
-      <form action="/webmanager" method="POST" class="webmanager-form">
-        <h3>Wi-Fi</h3>
-        <div class="webmanager-field">
-          <label for="ssid">Network</label>
-          <input type="text" id="ssid" name="ssid" autocomplete="username" required>
-        </div>
-        <div class="webmanager-field">
-          <label for="pass">Password</label>
-          <input type="password" id="pass" name="pass" autocomplete="current-password" required>
-        </div>
 
-        <h3>MQTT</h3>
-        <div class="webmanager-field">
-          <label for="mqtt_host">Host</label>
-          <input type="text" id="mqtt_host" name="mqtt_host">
-        </div>
-        <div class="webmanager-field">
-          <label for="mqtt_port">Port</label>
-          <input type="number" id="mqtt_port" name="mqtt_port">
-        </div>
-        <div class="webmanager-field">
-          <label for="mqtt_user">User</label>
-          <input type="text" id="mqtt_user" name="mqtt_user" autocomplete="username">
-        </div>
-        <div class="webmanager-field">
-          <label for="mqtt_password">Password</label>
-          <input type="password" id="mqtt_password" name="mqtt_password" autocomplete="current-password">
-        </div>
-        <div class="webmanager-field">
-          <label for="mqtt_topic">Topic</label>
-          <input type="text" id="mqtt_topic" name="mqtt_topic">
-        </div>
+  <div class="content">
+    <div class="card-grid">
+      <div class="card webmanager-card">
+        <form id="webManagerForm" action="/webmanager" method="POST">
+<div class="webmanager-form-grid">
+  <label for="ssid">Wi-Fi Network</label>
+  <input type="text" id="ssid" name="ssid" autocomplete="off">
 
-        <div class="webmanager-actions">
-          <a href="/" class="button">Home</a>
-          <input type="submit" value="Save and Restart">
-        </div>
-      </form>
-    </section>
-  </main>
+  <label for="pass">Wi-Fi Password</label>
+  <input type="password" id="pass" name="pass" autocomplete="new-password">
+
+  <div class="form-spacer"></div>
+
+  <label for="mqtt_host">MQTT Host</label>
+  <input type="text" id="mqtt_host" name="mqtt_host" autocomplete="off">
+
+  <label for="mqtt_port">MQTT Port</label>
+  <input type="number" id="mqtt_port" name="mqtt_port" autocomplete="off">
+
+  <label for="mqtt_user">MQTT User</label>
+  <input type="text" id="mqtt_user" name="mqtt_user" autocomplete="off">
+
+  <label for="mqtt_password">MQTT Password</label>
+  <input type="password" id="mqtt_password" name="mqtt_password" autocomplete="new-password">
+
+  <label for="mqtt_topic">MQTT Topic</label>
+  <input type="text" id="mqtt_topic" name="mqtt_topic" autocomplete="off">
+
+  <div class="form-spacer"></div>
+
+  <div class="form-actions">
+    <input type="submit" id="saveButton" value="Save">
+  </div>
+
+  <div class="save-feedback">
+    <div id="saveStatus" style="display: none;"></div>
+    <div id="countdown" style="display: none;">
+      Returning to the Home page in
+      <span id="countdownValue">10</span> seconds...
+    </div>
+  </div>
+</div>
+        </form>
+      </div>
+    </div>
+
+    <br>
+
+    <div class="card-noshadow">
+      <div class="left">
+        <a href="/"><button class="button">Home</button></a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function passwordMask(length) {
+      return "*".repeat(Number(length) || 0);
+    }
+
+    async function loadWebManagerConfig() {
+      try {
+        const response = await fetch("/webmanager-config", { cache: "no-store" });
+        if (!response.ok) {
+throw new Error(`HTTP ${response.status}`);
+        }
+
+        const config = await response.json();
+        document.getElementById("ssid").value = config.ssid || "";
+        document.getElementById("mqtt_host").value = config.mqtt_host || "";
+        document.getElementById("mqtt_port").value = config.mqtt_port || "";
+        document.getElementById("mqtt_user").value = config.mqtt_user || "";
+        document.getElementById("mqtt_topic").value = config.mqtt_topic || "";
+
+        // Password contents never leave the controller.
+        document.getElementById("pass").placeholder =
+passwordMask(config.wifi_password_length);
+        document.getElementById("mqtt_password").placeholder =
+passwordMask(config.mqtt_password_length);
+      } catch (error) {
+        console.error("Unable to load Web Manager configuration:", error);
+      }
+    }
+
+    function updatePasswordPlaceholder(input) {
+      if (input.value.length > 0) {
+        input.placeholder = passwordMask(input.value.length);
+        input.value = "";
+      }
+    }
+
+    async function waitForController() {
+      const saveStatus = document.getElementById("saveStatus");
+      const countdown = document.getElementById("countdown");
+
+      saveStatus.textContent = "Restart complete. Reconnecting...";
+      countdown.style.display = "none";
+
+      for (let attempt = 0; attempt < 30; attempt++) {
+        try {
+const response = await fetch("/webmanager-config?ts=" + Date.now(), {
+  cache: "no-store"
+});
+if (response.ok) {
+  window.location.replace("/");
+  return;
+}
+        } catch (error) {
+// Expected while the controller is rebooting.
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      saveStatus.textContent =
+        "The controller is not reachable yet. If Wi-Fi credentials changed, reconnect to the correct network.";
+    }
+
+    async function saveWebManagerConfig(event) {
+      event.preventDefault();
+
+      const form = document.getElementById("webManagerForm");
+      const saveButton = document.getElementById("saveButton");
+      const saveStatus = document.getElementById("saveStatus");
+      const countdown = document.getElementById("countdown");
+      const countdownValue = document.getElementById("countdownValue");
+      const wifiPassword = document.getElementById("pass");
+      const mqttPassword = document.getElementById("mqtt_password");
+
+      saveButton.disabled = true;
+      saveStatus.style.display = "block";
+      saveStatus.textContent = "Saving settings...";
+      countdown.style.display = "none";
+
+      try {
+        const response = await fetch("/webmanager", {
+method: "POST",
+body: new FormData(form)
+        });
+
+        if (!response.ok) {
+const message = await response.text();
+throw new Error(message || `HTTP ${response.status}`);
+        }
+
+        updatePasswordPlaceholder(wifiPassword);
+        updatePasswordPlaceholder(mqttPassword);
+
+        saveStatus.textContent = "Settings saved. Restarting controller...";
+
+        let seconds = 10;
+        countdownValue.textContent = seconds;
+        countdown.style.display = "block";
+
+        const timer = setInterval(() => {
+seconds--;
+countdownValue.textContent = seconds;
+if (seconds <= 0) {
+  clearInterval(timer);
+  waitForController();
+}
+        }, 1000);
+      } catch (error) {
+        console.error("Unable to save Web Manager configuration:", error);
+        saveStatus.textContent = "Error saving settings.";
+        countdown.style.display = "none";
+        saveButton.disabled = false;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadWebManagerConfig();
+      document.getElementById("webManagerForm")
+        .addEventListener("submit", saveWebManagerConfig);
+    });
+  </script>
 </body>
 </html>

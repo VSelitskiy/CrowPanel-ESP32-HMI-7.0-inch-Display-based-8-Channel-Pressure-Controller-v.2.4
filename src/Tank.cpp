@@ -21,9 +21,12 @@
 #include "Tank.h"
 #include "math_utils.h"
 #include <ArduinoJson.h>
+#include <cmath>
 #include <LittleFS.h>
 
 namespace {
+
+constexpr float MIN_CALIBRATION_SPAN = 0.05f;
 
 bool hasJsonValue(const JsonDocument& document, const char* key) {
     return !document[key].isNull();
@@ -90,9 +93,9 @@ void Tank::setPressureMode(int8_t mode) {
 }
 
 void Tank::updateRelay() {
-    // Serial.printf("[%lu] Tank %d: Writing relay state %d to GPIO\n", 
-    //              millis(), id, relayState);
-    output->write(relayState);
+    if (output != nullptr) {
+        output->write(relayState);
+    }
 }
 
 void Tank::updatePressureControl() {
@@ -157,13 +160,15 @@ void Tank::setSensorRange(float value) {
 }
 
 void Tank::setVolts4(float value) {
-    if (isValidVoltage(value, true)) {
+    if (isValidVoltage(value, true) &&
+        value < volts20 - MIN_CALIBRATION_SPAN) {
         volts4 = value;
     }
 }
 
 void Tank::setVolts20(float value) {
-    if (isValidVoltage(value, false)) {
+    if (isValidVoltage(value, false) &&
+        value > volts4 + MIN_CALIBRATION_SPAN) {
         volts20 = value;
     }
 }
@@ -178,7 +183,12 @@ void Tank::setRelayState(bool state) {
 }
 
 float Tank::calculatePressure(float volts) {
-    return mapfloat(volts, volts4, volts20, 0, sensorRange);
+    if (!std::isfinite(volts) ||
+        std::fabs(volts20 - volts4) < MIN_CALIBRATION_SPAN) {
+        return NAN;
+    }
+
+    return mapfloat(volts, volts4, volts20, MIN_SENSOR_RANGE, sensorRange);
 }
 
 void Tank::setTargetTemp(float value) {
