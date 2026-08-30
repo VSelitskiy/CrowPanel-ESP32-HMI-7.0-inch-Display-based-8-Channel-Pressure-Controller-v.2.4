@@ -61,14 +61,13 @@ std::map<int, unsigned long> lastErrorLogTime; // Map to store the last log time
 const char* FIRMWARE_VERSION = "2.4.4"; // Audited common fixes aligned with Boia V1.4
 
 // const char* PRESET_PIN = "0808";
-const uint16_t INTERVAL = 60000; // INTERVAL to wait for Wi-Fi connection (milliseconds)
+const uint32_t WIFI_CONNECT_TIMEOUT = 15000; // Wi-Fi connection timeout
 const uint16_t INDICATION_TIME = 2000; // control interval
 const uint32_t LOG_INTERVAL = 300000; // Log interval in milliseconds (1 hour as an example) 
 const uint32_t INACTIVITY_PERIOD = 120000; // 120 seconds of inactivity to switch of backlight
 const uint32_t SENSOR_READ_INTERVAL = 500; // Physical pressure sensor acquisition interval
 
 // Timer variables
-uint64_t previousMillis = 0;
 uint64_t indication_millis = 0;
 uint64_t sensorReadMillis = 0;
 uint32_t telePeriod = 30000;
@@ -933,20 +932,21 @@ bool initWiFi()
   set_var_mac_address(WiFi.macAddress().c_str());
   Serial.println("Connecting to WiFi...");
 
-  uint32_t currentMillis = millis();
-  previousMillis = currentMillis;
+const uint32_t startTime = millis();
 
-  while (WiFi.status() != WL_CONNECTED)
+while (WiFi.status() != WL_CONNECTED)
+{
+  if ((uint32_t)(millis() - startTime) >= WIFI_CONNECT_TIMEOUT)
   {
-    currentMillis = millis();
-    if (currentMillis - previousMillis >= INTERVAL)
-    {
-      String errorMsg = "Failed to connect to WIFI";
-      Serial.println(errorMsg);
-      addErrorMessage(errorMsg, NETWORK_ERROR_WIFI_TIMEOUT, 1);
-      return false;
-    }
+    String errorMsg = "Failed to connect to WIFI";
+    Serial.println(errorMsg);
+    addErrorMessage(errorMsg, NETWORK_ERROR_WIFI_TIMEOUT, 1);
+    return false;
   }
+
+  // Yield CPU time to Wi-Fi and FreeRTOS background tasks.
+  delay(10);
+}
   return true;
 }
 
@@ -1595,10 +1595,8 @@ void setup()
   // Start FTPServer with username = "ftp", password = "ftp". FTP must start after all other services!
   Serial.println("Starting FTP server with login/password ftp/ftp");
   ftpSrv.begin("ftp", "ftp");
-  delay(50);
   Serial.println("Connecting to MQTT...");
   mqttClient.connect();
-  delay(500);
 }
 
 
