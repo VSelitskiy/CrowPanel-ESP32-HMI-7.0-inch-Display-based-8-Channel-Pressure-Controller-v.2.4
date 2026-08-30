@@ -13,7 +13,6 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 //#include <SD.h>
-#include <FTPServer.h>
 #include <Preferences.h>
 //#include <Adafruit_GFX.h>
 
@@ -27,6 +26,13 @@
 #include "ui/vars.h"
 #include "ui/actions.h" 
 #include "lgfx/lgfx.h"
+
+// SimpleFTPServer defines UTF8_SUPPORT as an empty macro.
+// EEZ Flow uses UTF8_SUPPORT as a numeric preprocessor value.
+#undef UTF8_SUPPORT
+#include <SimpleFTPServer.h>
+#undef UTF8_SUPPORT
+#define UTF8_SUPPORT 1
 
 #include "GPIOOutput.h"
 #include "SystemConfig.h"
@@ -219,7 +225,7 @@ AsyncWebSocket ws1("/ws1");
 PsychicMqttClient mqttClient;
 
 // Construct FTPServer with LittleFS, LittleFS, SD
-FTPServer ftpSrv(LittleFS);
+FtpServer ftpSrv;
 
 // Create objects for ADS1115 boards
 Adafruit_ADS1115 ads0048; /* Use this for the 16-bit version */
