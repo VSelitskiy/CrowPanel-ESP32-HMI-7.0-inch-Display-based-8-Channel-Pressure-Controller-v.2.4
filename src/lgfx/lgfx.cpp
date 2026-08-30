@@ -102,7 +102,7 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
       // Serial.println(data->point.x);
       // Serial.print("Data y ");
       // Serial.println(data->point.y);
-      Serial.printf("Touched at x=%u, y=%u\n", data->point.x, data->point.y);
+      // Serial.printf("Touched at x=%u, y=%u\n", data->point.x, data->point.y);
       // Call the function to turn on the backlight
       switchBacklightOn();
     }
@@ -120,11 +120,13 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 
 void LGFX::setup()
 {
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, LOW);
+
   // Init Display
   this->begin();
   this->fillScreen(TFT_BLUE);//0x123456);//TFT_BLACK);
   this->setTextSize(2);
-  delay(200);
   lv_init();
   // Init touch device
   touch_init();
@@ -154,9 +156,6 @@ void LGFX::setup()
   // ledcAttachPin(TFT_BL, 1);
   // ledcWrite(1, 0); /* Screen brightness can be modified by adjusting this parameter. (0-255) */
   //
-  pinMode(TFT_BL, OUTPUT);
-  digitalWrite(TFT_BL, LOW);
-  delay(500);
   digitalWrite(TFT_BL, HIGH);
   //
 
