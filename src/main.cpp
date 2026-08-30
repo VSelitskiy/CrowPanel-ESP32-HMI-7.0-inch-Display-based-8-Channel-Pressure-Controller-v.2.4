@@ -58,18 +58,18 @@ std::map<int, unsigned long> lastErrorLogTime; // Map to store the last log time
 
 // Constants
 
-const char* FIRMWARE_VERSION = "2.4.4"; // Audited common fixes aligned with Boia V1.4
+const char* FIRMWARE_VERSION = "2.4.5"; // Distributed non-blocking ADS1115 acquisition
 
 // const char* PRESET_PIN = "0808";
 const uint32_t WIFI_CONNECT_TIMEOUT = 15000; // Wi-Fi connection timeout
 const uint16_t INDICATION_TIME = 2000; // control interval
 const uint32_t LOG_INTERVAL = 300000; // Log interval in milliseconds (1 hour as an example) 
 const uint32_t INACTIVITY_PERIOD = 120000; // 120 seconds of inactivity to switch of backlight
-const uint32_t SENSOR_READ_INTERVAL = 500; // Physical pressure sensor acquisition interval
+const uint32_t SENSOR_READ_INTERVAL = 500; // Physical sample interval for each pressure channel
 
 // Timer variables
 uint64_t indication_millis = 0;
-uint64_t sensorReadMillis = 0;
+uint32_t sensorReadMillis = 0;
 uint32_t telePeriod = 30000;
 uint64_t tele_millis = 0;
 uint64_t lastActivityTime = 0;
@@ -77,12 +77,34 @@ uint64_t lastActivityTime = 0;
 // Process variables
 uint8_t tankNumber = 0;
 
+static constexpr uint8_t ADC_CHANNEL_COUNT = 4;
 static constexpr uint8_t ADC_AVERAGE_BITS = 2;
 static constexpr uint8_t ADC_AVERAGE_SAMPLES = 1U << ADC_AVERAGE_BITS;
+static constexpr uint32_t SENSOR_SLOT_INTERVAL = SENSOR_READ_INTERVAL / ADC_CHANNEL_COUNT;
+static constexpr uint32_t ADC_CONVERSION_WAIT_MS = 5;
+static constexpr uint32_t ADC_CONVERSION_TIMEOUT_MS = 20;
+static constexpr uint16_t ADC_MUX_BY_CHANNEL[ADC_CHANNEL_COUNT] = {
+  ADS1X15_REG_CONFIG_MUX_SINGLE_0,
+  ADS1X15_REG_CONFIG_MUX_SINGLE_1,
+  ADS1X15_REG_CONFIG_MUX_SINGLE_2,
+  ADS1X15_REG_CONFIG_MUX_SINGLE_3
+};
+
+static_assert(SENSOR_READ_INTERVAL % ADC_CHANNEL_COUNT == 0,
+              "SENSOR_READ_INTERVAL must be divisible by ADC channel count");
+
 int16_t adcSamples[NUMBER_OF_TANKS][ADC_AVERAGE_SAMPLES] = {};
 int32_t adcSums[NUMBER_OF_TANKS] = {};
 uint8_t adcSampleIndex[NUMBER_OF_TANKS] = {};
 bool adcFilterInitialized[NUMBER_OF_TANKS] = {};
+
+uint8_t adcChannelIndex = 0;
+bool adcConversionPending = false;
+bool ads0048ConversionPending = false;
+bool ads0049ConversionPending = false;
+bool ads0048Available = false;
+bool ads0049Available = false;
+uint32_t adcConversionStartedAt = 0;
 
 // Search for parameter in Web-Manager HTTP POST request
 const char *PARAM_INPUT_1 = "ssid";
@@ -529,36 +551,42 @@ void resetAdcRollingAverage(uint8_t tankIndex) {
   adcSampleIndex[tankIndex] = 0;
 }
 
-void readPressureChannel(uint8_t tankIndex,
-                         Adafruit_ADS1115 &adcDevice,
-                         uint8_t adcAddress,
-                         uint8_t channel,
-                         bool deviceAvailable) {
+void setPressureCommunicationError(uint8_t tankIndex,
+                                   uint8_t adcAddress,
+                                   uint8_t channel) {
   if (tanks[tankIndex] == nullptr) {
     return;
   }
 
-  if (!deviceAvailable) {
-    String errorMsg = "ADS1115 at address 0x" + String(adcAddress, HEX) +
-                      " not responding (Channel " + String(channel) + ")";
-    Serial.print("Error: ");
-    Serial.println(errorMsg);
-    addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
-    tanks[tankIndex]->setSensorError(-1);
-    resetAdcRollingAverage(tankIndex);
+  String errorMsg = "ADS1115 at address 0x" + String(adcAddress, HEX) +
+                    " not responding (Channel " + String(channel) + ")";
+  Serial.print("Error: ");
+  Serial.println(errorMsg);
+  addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
+  tanks[tankIndex]->setSensorError(-1);
+  resetAdcRollingAverage(tankIndex);
+}
+
+void setPressureConversionError(uint8_t tankIndex,
+                                uint8_t adcAddress,
+                                uint8_t channel) {
+  if (tanks[tankIndex] == nullptr) {
     return;
   }
 
-  const int16_t newSample = adcDevice.readADC_SingleEnded(channel);
+  String errorMsg = "Conversion error on ADS1115 at address 0x" +
+                    String(adcAddress, HEX) + " (Channel " + String(channel) + ")";
+  Serial.print("Error: ");
+  Serial.println(errorMsg);
+  addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
+  tanks[tankIndex]->setSensorError(1);
+  resetAdcRollingAverage(tankIndex);
+}
 
-  if (!adcDevice.conversionComplete()) {
-    String errorMsg = "Conversion error on ADS1115 at address 0x" +
-                      String(adcAddress, HEX) + " (Channel " + String(channel) + ")";
-    Serial.print("Error: ");
-    Serial.println(errorMsg);
-    addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
-    tanks[tankIndex]->setSensorError(1);
-    resetAdcRollingAverage(tankIndex);
+void processPressureSample(uint8_t tankIndex,
+                           Adafruit_ADS1115 &adcDevice,
+                           int16_t newSample) {
+  if (tanks[tankIndex] == nullptr) {
     return;
   }
 
@@ -595,17 +623,129 @@ void readPressureChannel(uint8_t tankIndex,
   }
 }
 
-void readPressureSensors() {
-  const bool ads0048Available = checkI2CDevice(0x48);
-  const bool ads0049Available = checkI2CDevice(0x49);
+void readPressureChannelBlocking(uint8_t tankIndex,
+                                 Adafruit_ADS1115 &adcDevice,
+                                 uint8_t adcAddress,
+                                 uint8_t channel,
+                                 bool deviceAvailable) {
+  if (!deviceAvailable) {
+    setPressureCommunicationError(tankIndex, adcAddress, channel);
+    return;
+  }
 
-  for (uint8_t tankIndex = 0; tankIndex < NUMBER_OF_TANKS; tankIndex++) {
-    if (tankIndex < 4) {
-      readPressureChannel(tankIndex, ads0048, 0x48, tankIndex, ads0048Available);
+  const int16_t newSample = adcDevice.readADC_SingleEnded(channel);
+  if (!adcDevice.conversionComplete()) {
+    setPressureConversionError(tankIndex, adcAddress, channel);
+    return;
+  }
+
+  processPressureSample(tankIndex, adcDevice, newSample);
+}
+
+// Prime all channels once during setup so pressure control starts with valid data.
+// The runtime acquisition below is distributed and non-blocking.
+void primePressureSensors() {
+  ads0048Available = checkI2CDevice(0x48);
+  ads0049Available = checkI2CDevice(0x49);
+
+  for (uint8_t channel = 0; channel < ADC_CHANNEL_COUNT; channel++) {
+    readPressureChannelBlocking(channel,
+                                ads0048,
+                                0x48,
+                                channel,
+                                ads0048Available);
+    readPressureChannelBlocking(channel + ADC_CHANNEL_COUNT,
+                                ads0049,
+                                0x49,
+                                channel,
+                                ads0049Available);
+  }
+}
+
+// Start one channel on each ADS1115. Both converters then run in parallel.
+void startPressureSensorRead() {
+  if (adcConversionPending) {
+    return;
+  }
+
+  if (adcChannelIndex == 0) {
+    // Check each ADC once per complete four-channel cycle (every 500 ms).
+    ads0048Available = checkI2CDevice(0x48);
+    ads0049Available = checkI2CDevice(0x49);
+  }
+
+  ads0048ConversionPending = false;
+  ads0049ConversionPending = false;
+
+  if (ads0048Available) {
+    ads0048.startADCReading(ADC_MUX_BY_CHANNEL[adcChannelIndex], false);
+    ads0048ConversionPending = true;
+  } else {
+    setPressureCommunicationError(adcChannelIndex, 0x48, adcChannelIndex);
+  }
+
+  if (ads0049Available) {
+    ads0049.startADCReading(ADC_MUX_BY_CHANNEL[adcChannelIndex], false);
+    ads0049ConversionPending = true;
+  } else {
+    setPressureCommunicationError(adcChannelIndex + ADC_CHANNEL_COUNT,
+                                  0x49,
+                                  adcChannelIndex);
+  }
+
+  if (ads0048ConversionPending || ads0049ConversionPending) {
+    adcConversionStartedAt = millis();
+    adcConversionPending = true;
+  } else {
+    adcChannelIndex = (adcChannelIndex + 1) & (ADC_CHANNEL_COUNT - 1);
+  }
+}
+
+// Collect the pair after the ADS1115 conversion time without blocking loop().
+void servicePressureSensorRead() {
+  if (!adcConversionPending) {
+    return;
+  }
+
+  const uint32_t elapsed = (uint32_t)(millis() - adcConversionStartedAt);
+  if (elapsed < ADC_CONVERSION_WAIT_MS) {
+    return;
+  }
+
+  const bool ads0048Ready =
+      !ads0048ConversionPending || ads0048.conversionComplete();
+  const bool ads0049Ready =
+      !ads0049ConversionPending || ads0049.conversionComplete();
+
+  if ((!ads0048Ready || !ads0049Ready) && elapsed < ADC_CONVERSION_TIMEOUT_MS) {
+    return;
+  }
+
+  if (ads0048ConversionPending) {
+    if (ads0048Ready) {
+      processPressureSample(adcChannelIndex,
+                            ads0048,
+                            ads0048.getLastConversionResults());
     } else {
-      readPressureChannel(tankIndex, ads0049, 0x49, tankIndex - 4, ads0049Available);
+      setPressureConversionError(adcChannelIndex, 0x48, adcChannelIndex);
     }
   }
+
+  if (ads0049ConversionPending) {
+    const uint8_t tankIndex = adcChannelIndex + ADC_CHANNEL_COUNT;
+    if (ads0049Ready) {
+      processPressureSample(tankIndex,
+                            ads0049,
+                            ads0049.getLastConversionResults());
+    } else {
+      setPressureConversionError(tankIndex, 0x49, adcChannelIndex);
+    }
+  }
+
+  ads0048ConversionPending = false;
+  ads0049ConversionPending = false;
+  adcConversionPending = false;
+  adcChannelIndex = (adcChannelIndex + 1) & (ADC_CHANNEL_COUNT - 1);
 }
 
 // Get current sensor state and return it as JSON. Physical ADC reads are performed separately.
@@ -1550,14 +1690,16 @@ void setup()
     Serial.println(errorMsg);
     addErrorMessage(errorMsg, SENSOR_ERROR_INITIALIZATION, 2);
   }
-  else if (!init_ads0049)
+  if (!init_ads0049)
   {
     String errorMsg = "Failed init ADS at 0x49.";
     Serial.println(errorMsg);
     addErrorMessage(errorMsg, SENSOR_ERROR_INITIALIZATION, 2);
-  } else {
-    readPressureSensors();
   }
+
+  // Prime all channels once before control enters the runtime loop.
+  primePressureSensors();
+  sensorReadMillis = millis();
 
   // Update MQTT topics after loading config
   updateMQTTTopics();
@@ -1623,9 +1765,16 @@ void loop()
     Serial.println("OTA update completed. Restarting...");
     scheduleRestart(1000);
   }
-  if ((millis() - sensorReadMillis) >= SENSOR_READ_INTERVAL) {
+
+  // Complete pending ADS1115 conversions without waiting in place.
+  servicePressureSensorRead();
+
+  // Start one channel pair every 125 ms. Four pairs give each FV one
+  // physical sample every 500 ms while distributing I2C/ADC workload.
+  if (!adcConversionPending &&
+      (uint32_t)(millis() - sensorReadMillis) >= SENSOR_SLOT_INTERVAL) {
     sensorReadMillis = millis();
-    readPressureSensors();
+    startPressureSensorRead();
   }
 
   pressureController();
