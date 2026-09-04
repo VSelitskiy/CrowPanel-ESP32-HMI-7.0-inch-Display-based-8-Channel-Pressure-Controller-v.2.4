@@ -54,16 +54,16 @@ uint16_t mqttCounter = 0;
 
 std::mutex tankNumber_mutex; // Define the mutex
 std::vector<ErrorMessage> errorMessages; // Vector to store errors
-std::map<int, unsigned long> lastErrorLogTime; // Map to store the last log time for each error code
+std::map<uint32_t, unsigned long> lastErrorLogTime; // Map to store the last log time for each error source
 
 // Constants
 
-const char* FIRMWARE_VERSION = "2.4.5"; // Distributed non-blocking ADS1115 acquisition
+const char* FIRMWARE_VERSION = "2.4.6"; // Harden pressure sensor fault handling and independent error logging
 
 // const char* PRESET_PIN = "0808";
 const uint32_t WIFI_CONNECT_TIMEOUT = 15000; // Wi-Fi connection timeout
 const uint16_t INDICATION_TIME = 2000; // control interval
-const uint32_t LOG_INTERVAL = 300000; // Log interval in milliseconds (1 hour as an example) 
+const uint32_t LOG_INTERVAL = 300000; // Error log suppression interval: 5 minutes
 const uint32_t INACTIVITY_PERIOD = 120000; // 120 seconds of inactivity to switch of backlight
 const uint32_t SENSOR_READ_INTERVAL = 500; // Physical sample interval for each pressure channel
 
@@ -564,6 +564,7 @@ void setPressureCommunicationError(uint8_t tankIndex,
   Serial.println(errorMsg);
   addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
   tanks[tankIndex]->setSensorError(-1);
+  tanks[tankIndex]->updatePressureControl();
   resetAdcRollingAverage(tankIndex);
 }
 
@@ -580,6 +581,7 @@ void setPressureConversionError(uint8_t tankIndex,
   Serial.println(errorMsg);
   addErrorMessage(errorMsg, SENSOR_ERROR_COMMUNICATION, 2);
   tanks[tankIndex]->setSensorError(1);
+  tanks[tankIndex]->updatePressureControl();
   resetAdcRollingAverage(tankIndex);
 }
 
@@ -601,19 +603,24 @@ void processPressureSample(uint8_t tankIndex,
 
   if (!std::isfinite(calculatedPressure)) {
     String errorMsg =
-        "Pressure calibration error on channel " + String(tankIndex);
+        "Pressure calibration error on FV" + String(tankIndex + 1);
     Serial.print("Error: ");
     Serial.println(errorMsg);
     addErrorMessage(errorMsg, SENSOR_ERROR_CALIBRATION, 2);
     tanks[tankIndex]->setSensorError(1);
+    tanks[tankIndex]->updatePressureControl();
     return;
   }
 
   tanks[tankIndex]->setPressure(calculatedPressure);
 
-  if (measuredVolts < tanks[tankIndex]->getVolts4() * 0.8f ||
-      measuredVolts > tanks[tankIndex]->getVolts20() * 1.2f) {
-    String errorMsg = "Sensor error: Voltage out of range on channel " + String(tankIndex);
+  // Determine the final sensor state before pressure control is evaluated.
+  const bool sensorOutOfRange =
+      measuredVolts < tanks[tankIndex]->getVolts4() * 0.8f ||
+      measuredVolts > tanks[tankIndex]->getVolts20() * 1.2f;
+
+  if (sensorOutOfRange) {
+    String errorMsg = "Sensor error: Voltage out of range on FV" + String(tankIndex + 1);
     Serial.print("Error: ");
     Serial.println(errorMsg);
     addErrorMessage(errorMsg, SENSOR_ERROR_OUT_OF_RANGE, 2);
@@ -621,6 +628,9 @@ void processPressureSample(uint8_t tankIndex,
   } else {
     tanks[tankIndex]->setSensorError(0);
   }
+
+  // Apply control only after the current sample and its final error state are complete.
+  tanks[tankIndex]->updatePressureControl();
 }
 
 void readPressureChannelBlocking(uint8_t tankIndex,
@@ -1542,12 +1552,26 @@ String getReadableTime() {
   return readableTime;
 }
 
+// Build a stable per-source key so equal error codes from different FV channels
+// do not suppress each other during the log interval.
+uint32_t makeErrorLogKey(const String& message, int errorCode) {
+  uint32_t hash = 2166136261u ^ static_cast<uint32_t>(errorCode);
+
+  for (size_t i = 0; i < message.length(); i++) {
+    hash ^= static_cast<uint8_t>(message[i]);
+    hash *= 16777619u;
+  }
+
+  return hash;
+}
+
 // Modified function to add an error message to the list 
 void addErrorMessage(const String& message, int errorCode, int severity) {
     unsigned long currentMillis = millis();
+    const uint32_t logKey = makeErrorLogKey(message, errorCode);
     
-    if (lastErrorLogTime.find(errorCode) != lastErrorLogTime.end() && 
-        (currentMillis - lastErrorLogTime[errorCode] < LOG_INTERVAL)) {
+    if (lastErrorLogTime.find(logKey) != lastErrorLogTime.end() && 
+        (currentMillis - lastErrorLogTime[logKey] < LOG_INTERVAL)) {
         return;
     }
     
@@ -1561,7 +1585,7 @@ void addErrorMessage(const String& message, int errorCode, int severity) {
     
     ErrorMessage error = {message, timestamp, errorCode, severity};
     errorMessages.push_back(error);
-    lastErrorLogTime[errorCode] = currentMillis;
+    lastErrorLogTime[logKey] = currentMillis;
     set_var_error_status(true);
     
     Serial.printf("Error added: %s (Code: %d, Severity: %d) at %s\n", 
