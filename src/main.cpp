@@ -58,7 +58,7 @@ std::map<uint32_t, unsigned long> lastErrorLogTime; // Map to store the last log
 
 // Constants
 
-const char* FIRMWARE_VERSION = "2.4.6"; // Harden pressure sensor fault handling and independent error logging
+const char* FIRMWARE_VERSION = "2.4.7"; // Improve FTP reliability and FileZilla compatibility
 
 // const char* PRESET_PIN = "0808";
 const uint32_t WIFI_CONNECT_TIMEOUT = 15000; // Wi-Fi connection timeout
